@@ -116,6 +116,6 @@ export const api = {
 };
 
 export function errorText(e: unknown): string {
-  if (e instanceof ApiError) return e.code === 'NETWORK' ? 'שגיאת תקשורת, נסה שוב' : e.message;
+  if (e instanceof ApiError) return e.code === 'NETWORK' ? `שגיאת שרת: ${e.detail ?? 'לא ידועה'}` : e.message;
   return 'שגיאה לא צפויה';
 }

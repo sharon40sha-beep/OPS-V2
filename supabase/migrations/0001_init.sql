@@ -262,6 +262,7 @@ language sql volatile as $$
   update public.vehicle_budget
      set current_month_count = app_private.month_usage(vehicle_type, app_private.today()),
          reset_month = to_char(app_private.today(), 'YYYYMM')::int
+   where true  -- pg-safeupdate (enabled for API requests) rejects UPDATE without WHERE
 $$;
 
 -- Anti-pattern score for a candidate real trip (0 = clean, higher = worse).
