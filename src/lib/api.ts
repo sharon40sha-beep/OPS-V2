@@ -29,6 +29,10 @@ const MESSAGES: Record<string, string> = {
   BUDGET_EXHAUSTED: 'המכסה החודשית לסוג רכב זה מוצתה',
   CONFIG_MISSING: 'חסרות אפשרויות פעילות בקטגוריה',
   PIN_TOO_SHORT: 'קוד חייב להכיל לפחות 6 תווים',
+  PIN_POLICY: 'הקוד חייב להכיל לפחות 6 תווים, אות גדולה באנגלית, ספרה וסימן',
+  LEAD_NOT_ALONE: 'נהג ראשי לא יוצא לבד עם המוצר — יש לשבץ עובד נוסף',
+  DECOY_SOLO: 'בנסיעת פיתוי הנהג הראשי יוצא לבד',
+  COMPANY_ONLY_OPTION: 'אחת האפשרויות שנבחרו מותרת רק ברכב חברה',
   PIN_REQUIRED: 'יש להגדיר קוד לעובד חדש',
   NAME_TAKEN: 'השם כבר קיים',
   VALUE_TAKEN: 'הערך כבר קיים בקטגוריה',
@@ -76,7 +80,7 @@ export const api = {
   workerToday: (token: string) => call<WorkerTask[]>('worker_today', { p_token: token }),
   workerTripDetail: (token: string, tripId: string) =>
     call<WorkerTripDetail>('worker_trip_detail', { p_token: token, p_trip_id: tripId }),
-  workerSetStatus: (token: string, tripId: string, action: 'start' | 'done' | 'problem', note?: string) =>
+  workerSetStatus: (token: string, tripId: string, action: 'start' | 'done' | 'problem' | 'note', note?: string) =>
     call<void>('worker_set_status', { p_token: token, p_trip_id: tripId, p_action: action, p_note: note ?? null }),
   workerWeek: (token: string) => call<WorkerWeekDay[]>('worker_week', { p_token: token }),
 
@@ -109,8 +113,23 @@ export const api = {
     call<void>('admin_unlock_account', { p_token: token, p_pin: pin, p_employee_id: employeeId }),
   saveAsset: (token: string, id: string, homeWarehouse: string, isActive: boolean) =>
     call<void>('admin_save_asset', { p_token: token, p_id: id, p_home_warehouse: homeWarehouse, p_is_active: isActive }),
-  saveConfig: (token: string, id: string | null, category: string, value: string, isActive: boolean) =>
-    call<void>('admin_save_config', { p_token: token, p_id: id, p_category: category, p_value: value, p_is_active: isActive }),
+  saveConfig: (token: string, id: string | null, category: string, value: string, isActive: boolean, companyOnly: boolean) =>
+    call<void>('admin_save_config', {
+      p_token: token,
+      p_id: id,
+      p_category: category,
+      p_value: value,
+      p_is_active: isActive,
+      p_company_only: companyOnly,
+    }),
+  setAbsence: (token: string, employeeId: string, date: string, absent: boolean, note?: string) =>
+    call<void>('admin_set_absence', {
+      p_token: token,
+      p_employee_id: employeeId,
+      p_date: date,
+      p_absent: absent,
+      p_note: note ?? null,
+    }),
   saveBudget: (token: string, vehicleType: string, max: number | null) =>
     call<void>('admin_save_budget', { p_token: token, p_vehicle_type: vehicleType, p_max: max }),
 };

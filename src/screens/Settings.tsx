@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { timeOf } from '../lib/dates';
-import { CATEGORIES, CATEGORY_LABEL, optionLabel, vehicleLabel } from '../lib/labels';
+import { shortDate, dayName, timeOf, todayIso } from '../lib/dates';
+import { CATEGORIES, CATEGORY_LABEL, PIN_POLICY_TEXT, optionLabel, pinPolicyOk, vehicleLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
 import type { Category, EmployeeRow, Settings as SettingsData } from '../lib/types';
 import { Modal } from '../components/Modal';
@@ -70,6 +70,7 @@ function useMutation(reload: () => Promise<void>) {
 function Employees({ data, reload }: SectionProps) {
   const { token } = useAuth();
   const [editing, setEditing] = useState<EmployeeRow | 'new' | null>(null);
+  const [absencesFor, setAbsencesFor] = useState<EmployeeRow | null>(null);
   const { run, error } = useMutation(reload);
   const stepUp = useStepUp();
 
@@ -95,6 +96,9 @@ function Employees({ data, reload }: SectionProps) {
           </div>
           <div className="row">
             {e.locked_until && <button className="btn small" onClick={() => unlock(e)}>שחרר</button>}
+            <button className="btn small" onClick={() => setAbsencesFor(e)}>
+              היעדרויות{countUpcoming(data, e.id) ? ` (${countUpcoming(data, e.id)})` : ''}
+            </button>
             <button className="btn small" onClick={() => setEditing(e)}>ערוך</button>
           </div>
         </div>
@@ -103,8 +107,52 @@ function Employees({ data, reload }: SectionProps) {
         <EmployeeForm employee={editing === 'new' ? null : editing} isSelf={editing !== 'new' && editing.id === data.me}
           onClose={() => setEditing(null)} onSaved={() => { setEditing(null); void reload(); }} />
       )}
+      {absencesFor && (
+        <AbsencesModal employee={absencesFor} data={data} reload={reload} onClose={() => setAbsencesFor(null)} />
+      )}
       {stepUp.element}
     </div>
+  );
+}
+
+const countUpcoming = (data: SettingsData, employeeId: string) =>
+  data.absences.filter((a) => a.employee_id === employeeId && a.date >= todayIso()).length;
+
+function AbsencesModal({ employee, data, reload, onClose }: SectionProps & { employee: EmployeeRow; onClose: () => void }) {
+  const { token } = useAuth();
+  const { run, error, busy } = useMutation(reload);
+  const [date, setDate] = useState(todayIso());
+  const [note, setNote] = useState('');
+  const list = data.absences.filter((a) => a.employee_id === employee.id);
+
+  const add = async (e: FormEvent) => {
+    e.preventDefault();
+    if (await run(() => api.setAbsence(token, employee.id, date, true, note))) setNote('');
+  };
+
+  return (
+    <Modal title={`היעדרויות · ${employee.name}`} onClose={onClose}>
+      <p className="hint">
+        עובד שמסומן כנעדר לא ישובץ בהגרלה לאותו יום. סמן לפני "בנה שבוע" —
+        נסיעות שכבר נבנו יש לערוך ידנית.
+      </p>
+      {error && <p className="error">{error}</p>}
+      {list.length === 0 && <p className="muted small">אין היעדרויות מתוכננות</p>}
+      {list.map((a) => (
+        <div key={a.date} className="card list-row">
+          <span className="grow">יום {dayName(a.date)} {shortDate(a.date)}{a.note ? ` · ${a.note}` : ''}</span>
+          <button className="btn small" disabled={busy}
+            onClick={() => run(() => api.setAbsence(token, employee.id, a.date, false))}>הסר</button>
+        </div>
+      ))}
+      <form className="stack" onSubmit={add}>
+        <div className="row">
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="grow" />
+          <input placeholder="סיבה (רשות)" value={note} onChange={(e) => setNote(e.target.value)} className="grow" />
+        </div>
+        <button className="btn primary" disabled={busy || !date}>סמן היעדרות</button>
+      </form>
+    </Modal>
   );
 }
 
@@ -122,6 +170,10 @@ function EmployeeForm({ employee, isSelf, onClose, onSaved }: {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
+    if (pin && !pinPolicyOk(pin)) {
+      setError(`הקוד לא עומד במדיניות: ${PIN_POLICY_TEXT}`);
+      return;
+    }
     setBusy(true);
     setError(null);
     try {
@@ -161,6 +213,7 @@ function EmployeeForm({ employee, isSelf, onClose, onSaved }: {
         <label className="field"><span>{employee ? 'קוד חדש (ריק = ללא שינוי)' : 'קוד'}</span>
           <input type="password" value={pin} onChange={(e) => setPin(e.target.value)} autoComplete="new-password"
             minLength={6} required={!employee} />
+          <span className="hint">{PIN_POLICY_TEXT}</span>
         </label>
         {error && <p className="error">{error}</p>}
         <button className="btn primary block" disabled={busy}>{busy ? 'שומר…' : 'שמור'}</button>
@@ -251,7 +304,7 @@ function ConfigCategory({ category, data, reload }: SectionProps & { category: C
 
   const add = async (e: FormEvent) => {
     e.preventDefault();
-    if (await run(() => api.saveConfig(token, null, category, newValue, true))) setNewValue('');
+    if (await run(() => api.saveConfig(token, null, category, newValue, true, false))) setNewValue('');
   };
 
   return (
@@ -277,10 +330,17 @@ function ConfigCategory({ category, data, reload }: SectionProps & { category: C
             <div className="row">
               {value !== c.value && (
                 <button className="btn small primary" disabled={busy}
-                  onClick={() => run(() => api.saveConfig(token, c.id, category, value, c.is_active))}>שמור</button>
+                  onClick={() => run(() => api.saveConfig(token, c.id, category, value, c.is_active, c.company_only))}>שמור</button>
+              )}
+              {!fixedCodes && (
+                <button className={`btn small ${c.company_only ? 'primary' : ''}`} disabled={busy}
+                  title="אפשרות זו תוגרל/תותר רק ברכב חברה"
+                  onClick={() => run(() => api.saveConfig(token, c.id, category, c.value, c.is_active, !c.company_only))}>
+                  {c.company_only ? 'רק רכב חברה ✓' : 'רק רכב חברה'}
+                </button>
               )}
               <button className="btn small" disabled={busy}
-                onClick={() => run(() => api.saveConfig(token, c.id, category, c.value, !c.is_active))}>
+                onClick={() => run(() => api.saveConfig(token, c.id, category, c.value, !c.is_active, c.company_only))}>
                 {c.is_active ? 'השבת' : 'הפעל'}
               </button>
             </div>

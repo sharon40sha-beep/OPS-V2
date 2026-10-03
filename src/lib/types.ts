@@ -68,11 +68,20 @@ export interface AdminTrip extends TripParams {
   excluded_from_analysis: boolean;
 }
 
+export interface Absence {
+  employee_id: string;
+  date: string;
+  name?: string;
+  note?: string | null;
+}
+
 export interface AdminWeek {
   week_start: string;
   today: string;
   trips: AdminTrip[];
   stats: { total: number; done: number; open: number; problem: number };
+  absences: Absence[];
+  lead_ids: string[];
 }
 
 export interface GenerateResult {
@@ -81,6 +90,7 @@ export interface GenerateResult {
   decoys: number;
   fallbacks: number;
   skipped: { asset: string; date: string; reason: string }[];
+  warnings: { asset: string; date: string; reason: string }[];
 }
 
 export interface EmployeeRow {
@@ -103,6 +113,7 @@ export interface ConfigRow {
   category: Category;
   value: string;
   is_active: boolean;
+  company_only: boolean;
 }
 
 export interface BudgetRow {
@@ -119,4 +130,5 @@ export interface Settings {
   assets: AssetRow[];
   config: ConfigRow[];
   budget: BudgetRow[];
+  absences: Absence[];
 }

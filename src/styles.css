@@ -231,3 +231,8 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--gold); outl
   .modal-backdrop { align-items: center; }
   .modal { border-radius: 18px; }
 }
+
+.note { background: var(--gold-soft); padding: 8px 10px; border-radius: 8px; white-space: pre-line; }
+.problem-note { white-space: pre-line; }
+.align-start { align-self: flex-start; }
+button.chip { border: 0; cursor: pointer; }

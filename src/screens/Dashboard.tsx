@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth';
 import { addDays, dayName, shortDate, timeOf, todayIso, weekMonday } from '../lib/dates';
 import { slotLabel, vehicleLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
-import type { AdminTrip, GenerateResult } from '../lib/types';
+import type { Absence, AdminTrip, GenerateResult } from '../lib/types';
 import { Modal } from '../components/Modal';
 import { StatusChip } from '../components/StatusChip';
 import { TripParams } from '../components/TripParams';
@@ -78,6 +78,7 @@ export function Dashboard() {
       {data && days.map(([date, trips]) => (
         <div key={date} className={`day-group ${date === data.today ? 'today' : ''}`}>
           <h3>{dayName(date)} <span className="muted">{shortDate(date)}</span></h3>
+          <DayNotes date={date} trips={trips} absences={data.absences} leadIds={data.lead_ids} />
           {trips.length === 0 && <p className="muted small">אין נסיעות</p>}
           <div className="stack">
             {trips.map((t) => (
@@ -131,7 +132,11 @@ function AdminTripCard({ trip, open, onToggle, onEdit, onDelete }: {
               {trip.actual_done_at && ` · חזרה ${timeOf(trip.actual_done_at)}`}
             </p>
           )}
-          {trip.problem_note && <p className="problem-note">בעיה: {trip.problem_note}</p>}
+          {trip.problem_note && (
+            <p className={trip.status === 'problem' ? 'problem-note' : 'note'}>
+              {trip.status === 'problem' ? 'בעיה' : 'הערה'}: {trip.problem_note}
+            </p>
+          )}
           {trip.excluded_from_analysis && <p className="muted small">מוחרג מניתוח הדפוסים</p>}
           <div className="row">
             <button className="btn" onClick={onEdit}>{trip.status === 'planned' ? 'ערוך' : 'הגדרות ניתוח'}</button>
@@ -140,6 +145,23 @@ function AdminTripCard({ trip, open, onToggle, onEdit, onDelete }: {
         </div>
       )}
     </article>
+  );
+}
+
+/** Absences for the day + warning when no lead driver is scheduled. */
+function DayNotes({ date, trips, absences, leadIds }: {
+  date: string; trips: AdminTrip[]; absences: Absence[]; leadIds: string[];
+}) {
+  const absent = absences.filter((a) => a.date === date);
+  const leadAbsent = absent.some((a) => leadIds.includes(a.employee_id));
+  const leadScheduled = trips.some((t) => t.assigned_workers.some((w) => leadIds.includes(w)));
+  return (
+    <>
+      {absent.length > 0 && <p className="muted small">נעדרים: {absent.map((a) => a.name).join(', ')}</p>}
+      {trips.length > 0 && leadIds.length > 0 && !leadScheduled && !leadAbsent && (
+        <p className="error small">⚠ נהג ראשי לא משובץ ביום זה</p>
+      )}
+    </>
   );
 }
 
@@ -178,6 +200,12 @@ function GenerateModal({ defaultDate, onClose, onDone }: {
           <p>נוצרו <b>{result.created}</b> נסיעות, מתוכן <b>{result.decoys}</b> עם פיתוי.</p>
           {result.fallbacks > 0 && (
             <p className="muted small">{result.fallbacks} נסיעות נבחרו כ"הכי פחות חוזרות" (לא נמצא שילוב נקי ב-10 ניסיונות).</p>
+          )}
+          {result.warnings.length > 0 && (
+            <p className="error small">
+              נהג ראשי לא שובץ ב: {result.warnings.map((w) => `${dayName(w.date)} ${shortDate(w.date)}`).join(', ')}
+              {' '}(אין אפשרות לפיתוי או מכסת רכב חברה מוצתה)
+            </p>
           )}
           {result.skipped.length > 0 && (
             <p className="muted small">

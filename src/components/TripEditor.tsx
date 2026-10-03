@@ -31,12 +31,39 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
   const set = <K extends keyof TripParams>(k: K, v: TripParams[K]) => setForm((f) => ({ ...f, [k]: v }));
   const isCompany = form.vehicle_type === 'company';
 
+  // Options usable with the given vehicle class (company-only values are hidden for other vehicles).
+  const allowed = (cat: Category, company: boolean) =>
+    settings?.config
+      .filter((c) => c.category === cat && c.is_active && (company || !c.company_only))
+      .map((c) => c.value) ?? [];
+
   const options = (cat: Category, current: string) => {
-    const values = settings?.config.filter((c) => c.category === cat && c.is_active).map((c) => c.value) ?? [];
+    const values = cat === 'vehicle_type' ? allowed(cat, true) : allowed(cat, isCompany);
     return values.includes(current) ? values : [current, ...values];
   };
 
-  const operators = settings?.employees.filter((e) => e.role === 'operator' && (e.is_active || workers.includes(e.id))) ?? [];
+  const changeVehicle = (vehicle: string) => {
+    const company = vehicle === 'company';
+    setForm((f) => {
+      const next = { ...f, vehicle_type: vehicle };
+      // Replace values that are not allowed for the new vehicle class.
+      for (const cat of SELECT_FIELDS) {
+        if (cat === 'vehicle_type') continue;
+        const ok = allowed(cat, company);
+        const key = cat as keyof TripParams;
+        if (ok.length && !ok.includes(next[key])) (next as Record<string, string>)[key] = ok[0];
+      }
+      return next;
+    });
+    // A lead driver only drives the company car: drop them when switching away.
+    if (!company && settings) {
+      const leads = new Set(settings.employees.filter((x) => x.is_lead_driver).map((x) => x.id));
+      setWorkers((w) => w.filter((id) => !leads.has(id)));
+    }
+  };
+
+  const people = settings?.employees.filter((e) => e.is_active || workers.includes(e.id)) ?? [];
+  const isDecoy = trip.trip_type === 'decoy';
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -71,21 +98,15 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
             {SELECT_FIELDS.map((cat) => (
               <label key={cat} className="field">
                 <span>{CATEGORY_LABEL[cat]}</span>
-                <select value={form[cat as keyof TripParams]} onChange={(e) => {
-                  set(cat as keyof TripParams, e.target.value);
-                  // A lead driver only drives the company car: drop them when switching away.
-                  if (cat === 'vehicle_type' && e.target.value !== 'company') {
-                    const leads = new Set(settings.employees.filter((x) => x.is_lead_driver).map((x) => x.id));
-                    setWorkers((w) => w.filter((id) => !leads.has(id)));
-                  }
-                }}>
+                <select value={form[cat as keyof TripParams]} onChange={(e) =>
+                  cat === 'vehicle_type' ? changeVehicle(e.target.value) : set(cat as keyof TripParams, e.target.value)}>
                   {options(cat, form[cat as keyof TripParams]).map((v) => (
                     <option key={v} value={v}>{optionLabel(cat, v)}</option>
                   ))}
                 </select>
               </label>
             ))}
-            {isCompany && (
+            {isCompany && !isDecoy && (
               <label className="field">
                 <span>מיקום עובד</span>
                 <select value={form.worker_position === 'none' ? '' : form.worker_position}
@@ -98,15 +119,23 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
             <fieldset className="field">
               <span>עובדים משובצים</span>
               <div className="checks">
-                {operators.map((e) => (
+                {people.map((e) => (
                   <label key={e.id} className="check">
                     <input type="checkbox" checked={workers.includes(e.id)}
                       onChange={(ev) => setWorkers((w) => ev.target.checked ? [...w, e.id] : w.filter((x) => x !== e.id))} />
-                    {e.name}{e.is_lead_driver && <span className="chip small">נהג ראשי</span>}
+                    {e.name}
+                    {e.is_lead_driver && <span className="chip small">נהג ראשי</span>}
+                    {e.role === 'admin' && <span className="chip small">מנהל</span>}
                   </label>
                 ))}
               </div>
-              {!isCompany && <span className="hint">נהג ראשי נוהג רק ברכב חברה.</span>}
+              <span className="hint">
+                {isDecoy
+                  ? 'בפיתוי הנהג הראשי יוצא לבד.'
+                  : isCompany
+                    ? 'נהג ראשי לא יוצא לבד עם המוצר — לפחות עובד אחד נוסף.'
+                    : 'נהג ראשי נוהג רק ברכב חברה.'}
+              </span>
             </fieldset>
           </>
         )}

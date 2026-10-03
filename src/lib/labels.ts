@@ -46,3 +46,9 @@ export function optionLabel(category: Category, value: string): string {
   if (category === 'worker_position') return positionLabel(value);
   return value;
 }
+
+/** Mirrors app_private.pin_policy_ok in the DB. */
+export const PIN_POLICY_TEXT = 'לפחות 6 תווים, אות גדולה באנגלית, ספרה וסימן (למשל Abc12!)';
+export function pinPolicyOk(pin: string): boolean {
+  return pin.length >= 6 && /[A-Z]/.test(pin) && /[0-9]/.test(pin) && /[^\p{L}\p{N}\s]/u.test(pin);
+}
