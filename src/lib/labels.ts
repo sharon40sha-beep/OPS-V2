@@ -1,0 +1,48 @@
+import type { Category, Position, Slot, TripStatus } from './types';
+
+const VEHICLES: Record<string, string> = {
+  company: 'רכב חברה',
+  rental: 'רכב שכור',
+  delivery: 'רכב משלוחים',
+};
+
+const POSITIONS: Record<Position, string> = {
+  front: 'מקדימה',
+  back: 'מאחור',
+  none: '—',
+};
+
+const SLOTS: Record<Slot, string> = {
+  morning: 'בוקר',
+  noon: 'צהריים',
+};
+
+export const STATUS_LABEL: Record<TripStatus, string> = {
+  planned: 'מתוכנן',
+  active: 'בדרך',
+  done: 'הושלם',
+  problem: 'בעיה',
+};
+
+export const CATEGORY_LABEL: Record<Category, string> = {
+  exit_point: 'נקודת יציאה',
+  vehicle_type: 'סוג רכב',
+  outbound_route: 'ציר יציאה',
+  factory_entry: 'כניסה למפעל',
+  factory_exit: 'יציאה מהמפעל',
+  return_route: 'ציר חזרה',
+  worker_position: 'מיקום עובד',
+};
+
+export const CATEGORIES = Object.keys(CATEGORY_LABEL) as Category[];
+
+export const vehicleLabel = (v: string) => VEHICLES[v] ?? v;
+export const positionLabel = (p: string) => POSITIONS[p as Position] ?? p;
+export const slotLabel = (s: string) => SLOTS[s as Slot] ?? s;
+
+/** Display label for a config value (vehicle/position codes are stored in English). */
+export function optionLabel(category: Category, value: string): string {
+  if (category === 'vehicle_type') return vehicleLabel(value);
+  if (category === 'worker_position') return positionLabel(value);
+  return value;
+}
