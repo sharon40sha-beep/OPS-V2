@@ -149,6 +149,7 @@ export interface ConfigRow {
   value: string;
   is_active: boolean;
   company_only: boolean;
+  decoy_ok: boolean;
 }
 
 export interface BudgetRow {
