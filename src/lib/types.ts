@@ -2,7 +2,7 @@ export type Role = 'admin' | 'operator';
 export type TripStatus = 'planned' | 'active' | 'done' | 'problem';
 export type Slot = 'morning' | 'noon';
 export type Leg = 'outbound' | 'return';
-export type Position = 'front' | 'back' | 'none';
+export type Position = 'front' | 'back' | 'escort' | 'none';
 export type Category =
   | 'exit_point'
   | 'vehicle_type'

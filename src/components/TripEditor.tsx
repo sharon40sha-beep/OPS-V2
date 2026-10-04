@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { dayName, shortDate } from '../lib/dates';
-import { CATEGORY_LABEL, legLabel, optionLabel, positionLabel } from '../lib/labels';
+import { CATEGORY_LABEL, POSITION_CODES, legLabel, optionLabel, positionLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
 import type { AdminTrip, Category, Position } from '../lib/types';
 import { Modal } from './Modal';
@@ -137,7 +137,7 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
                 <span>מיקום עובד</span>
                 <select value={position === 'none' ? '' : position} onChange={(e) => setPosition(e.target.value as Position)}>
                   <option value="" disabled>בחר…</option>
-                  {(['front', 'back'] as Position[]).map((p) => <option key={p} value={p}>{positionLabel(p)}</option>)}
+                  {POSITION_CODES.map((p) => <option key={p} value={p}>{positionLabel(p)}</option>)}
                 </select>
               </label>
             )}
