@@ -9,6 +9,7 @@ const VEHICLES: Record<string, string> = {
 const POSITIONS: Record<Position, string> = {
   front: 'מקדימה',
   back: 'מאחור',
+  escort: 'ברכב אחר / מלווה',
   none: '—',
 };
 
@@ -40,6 +41,9 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   return_route: 'ציר חזרה',
   worker_position: 'מיקום עובד',
 };
+
+/** Fixed codes the draw engine understands for worker_position. */
+export const POSITION_CODES: Position[] = ['front', 'back', 'escort'];
 
 export const CATEGORIES = Object.keys(CATEGORY_LABEL) as Category[];
 

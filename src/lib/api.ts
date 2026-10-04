@@ -65,7 +65,11 @@ async function call<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   if (error) {
     // RPCs raise bare codes, optionally "CODE:detail".
     const [code, detail] = (error.message ?? '').split(':');
-    const err = MESSAGES[code] ? new ApiError(code, detail) : new ApiError('NETWORK', error.message);
+    const err = MESSAGES[code]
+      ? new ApiError(code, detail)
+      : /check constraint/.test(error.message ?? '')
+        ? new ApiError('BAD_VALUE')
+        : new ApiError('NETWORK', error.message);
     if (err.code === 'SESSION_INVALID') onSessionInvalid?.();
     throw err;
   }

@@ -5,7 +5,7 @@ React + Vite + TypeScript, Supabase (Postgres) כ-backend.
 
 ## הקמה
 
-1. **DB** — הרץ ב-Supabase SQL Editor, לפי הסדר, את כל הקבצים ב-`supabase/migrations/` (0001 → … → 0007).
+1. **DB** — הרץ ב-Supabase SQL Editor, לפי הסדר, את כל הקבצים ב-`supabase/migrations/` (0001 → … → 0008).
 
 2. **Env** — `cp .env.example .env`
 3. `npm install && npm run dev`

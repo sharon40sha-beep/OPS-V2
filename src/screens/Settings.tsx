@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { addDays, dayName, shortDate, timeOf, todayIso, weekMonday } from '../lib/dates';
-import { CATEGORIES, CATEGORY_LABEL, PIN_POLICY_TEXT, optionLabel, pinPolicyOk, vehicleLabel } from '../lib/labels';
+import { CATEGORIES, CATEGORY_LABEL, PIN_POLICY_TEXT, POSITION_CODES, optionLabel, pinPolicyOk, positionLabel, vehicleLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
 import type { Category, EmployeeRow, Settings as SettingsData } from '../lib/types';
 import { Modal } from '../components/Modal';
@@ -357,6 +357,7 @@ function ConfigCategory({ category, data, reload }: SectionProps & { category: C
   const rows = data.config.filter((c) => c.category === category);
   // Codes with fixed meaning in the algorithm must not be renamed.
   const fixedCodes = category === 'vehicle_type' || category === 'worker_position';
+  const missingPositions = POSITION_CODES.filter((p) => !rows.some((r) => r.value === p));
 
   const add = async (e: FormEvent) => {
     e.preventDefault();
@@ -369,7 +370,7 @@ function ConfigCategory({ category, data, reload }: SectionProps & { category: C
         <p className="hint">
           {category === 'vehicle_type'
             ? 'הקודים company / rental / delivery משמשים את מנוע ההגרלה. ניתן להשבית; קוד חדש יוגרל כרכב רגיל.'
-            : 'ערכים אפשריים: front / back.'}
+            : 'מיקום העובד נבחר מרשימה קבועה (מקדימה / מאחור / ברכב אחר-מלווה). ניתן להשבית ערך שלא רוצים שיוגרל.'}
         </p>
       )}
       {error && <p className="error">{error}</p>}
@@ -410,10 +411,23 @@ function ConfigCategory({ category, data, reload }: SectionProps & { category: C
           </div>
         );
       })}
-      <form className="row" onSubmit={add}>
-        <input className="grow" placeholder="ערך חדש" value={newValue} onChange={(e) => setNewValue(e.target.value)} required />
-        <button className="btn primary" disabled={busy}>הוסף</button>
-      </form>
+      {category === 'worker_position' ? (
+        // Positions are fixed codes; offer only the ones not added yet.
+        missingPositions.length > 0 && (
+          <form className="row" onSubmit={add}>
+            <select className="grow" value={newValue} onChange={(e) => setNewValue(e.target.value)} required>
+              <option value="" disabled>בחר מיקום…</option>
+              {missingPositions.map((p) => <option key={p} value={p}>{positionLabel(p)}</option>)}
+            </select>
+            <button className="btn primary" disabled={busy || !newValue}>הוסף</button>
+          </form>
+        )
+      ) : (
+        <form className="row" onSubmit={add}>
+          <input className="grow" placeholder="ערך חדש" value={newValue} onChange={(e) => setNewValue(e.target.value)} required />
+          <button className="btn primary" disabled={busy}>הוסף</button>
+        </form>
+      )}
     </>
   );
 }
