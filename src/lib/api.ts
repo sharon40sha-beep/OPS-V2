@@ -4,6 +4,7 @@ import type {
   AdminWeek,
   GenerateResult,
   PatternReport,
+  TeamWeek,
   Me,
   Settings,
   TripParams,
@@ -19,7 +20,7 @@ const MESSAGES: Record<string, string> = {
   FORBIDDEN: 'אין הרשאה',
   STEPUP_FAILED: 'קוד אימות שגוי',
   NOT_FOUND: 'הפריט לא נמצא',
-  NOT_PLANNED: 'ניתן לערוך/למחוק רק נסיעה במצב "מתוכנן"',
+  NOT_PLANNED: 'לא ניתן לשנות משימה שכבר בוצעה (מחיקה — רק לפני יציאה)',
   BAD_TRANSITION: 'פעולה לא אפשרית במצב הנוכחי',
   NOTE_REQUIRED: 'יש לתאר את הבעיה',
   BAD_INPUT: 'נתונים לא תקינים',
@@ -93,6 +94,8 @@ export const api = {
   workerSetStatus: (token: string, tripId: string, action: 'start' | 'done' | 'problem' | 'note', note?: string) =>
     call<void>('worker_set_status', { p_token: token, p_trip_id: tripId, p_action: action, p_note: note ?? null }),
   workerWeek: (token: string) => call<WorkerWeekDay[]>('worker_week', { p_token: token }),
+  teamWeek: (token: string, weekOffset: number) =>
+    call<TeamWeek>('team_week', { p_token: token, p_week_offset: weekOffset }),
 
   adminWeek: (token: string, date: string) => call<AdminWeek>('admin_week', { p_token: token, p_date: date }),
   generateWeek: (token: string, pin: string, weekStart: string) =>

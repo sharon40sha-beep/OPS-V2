@@ -281,3 +281,9 @@ button.chip { border: 0; cursor: pointer; }
 .constraints { border-top: 1px solid var(--border); padding-top: 12px; }
 .constraints h3 { color: var(--gold); margin: 0; }
 .build-id { text-align: center; }
+
+/* team week */
+.team-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.team-row.mine { border-color: var(--gold); }
+.team-row-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.icon-btn:disabled { opacity: 0.35; cursor: default; }
