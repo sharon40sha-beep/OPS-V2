@@ -264,3 +264,17 @@ button.chip { border: 0; cursor: pointer; }
 .bar { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
 .bar > span { display: block; height: 100%; background: var(--gold); }
 .bar-value { text-align: end; color: var(--muted); }
+
+/* weekly availability toggles */
+.day-toggles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+.day-toggle {
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  padding: 10px 2px; border-radius: 10px; cursor: pointer; min-height: 84px;
+  border: 1px solid var(--border); background: var(--surface-2); color: var(--text);
+}
+.day-toggle:disabled { opacity: 0.45; cursor: default; }
+.day-toggle-name { font-weight: 600; font-size: 0.9rem; }
+.day-toggle-state { font-size: 0.75rem; margin-top: 4px; }
+.day-toggle.on .day-toggle-state { color: var(--ok); }
+.day-toggle.off { border-color: var(--bad); background: rgba(229, 96, 79, 0.15); }
+.day-toggle.off .day-toggle-state { color: var(--bad); font-weight: 600; }
