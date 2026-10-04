@@ -12,6 +12,7 @@ import { useStepUp } from '../components/StepUp';
 import { TripEditor } from '../components/TripEditor';
 import { ConstraintsGrid } from '../components/ConstraintsGrid';
 import { PatternReport } from '../components/PatternReport';
+import { RefreshLog, RefreshWeekModal } from '../components/RefreshWeek';
 
 export function Dashboard() {
   const { token } = useAuth();
@@ -19,6 +20,8 @@ export function Dashboard() {
   const { data, error, loading, reload } = useAsync(() => api.adminWeek(token, weekStart), [token, weekStart]);
   const [generateOpen, setGenerateOpen] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
+  const [refreshOpen, setRefreshOpen] = useState(false);
+  const [logVersion, setLogVersion] = useState(0);
   const [editing, setEditing] = useState<AdminTrip | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [expandAll, setExpandAll] = useState(false);
@@ -55,7 +58,11 @@ export function Dashboard() {
       </header>
 
       <button className="btn primary block big" onClick={() => setGenerateOpen(true)}>בנה שבוע</button>
-      <button className="btn block" onClick={() => setReportOpen(true)}>ניתוח דפוסים</button>
+      <div className="row">
+        <button className="btn grow" onClick={() => setRefreshOpen(true)}>רענן שבוע</button>
+        <button className="btn grow" onClick={() => setReportOpen(true)}>ניתוח דפוסים</button>
+      </div>
+      <RefreshLog version={logVersion} />
 
       <div className="week-nav">
         <button className="icon-btn" onClick={() => setWeekStart(addDays(weekStart, -7))} aria-label="שבוע קודם">›</button>
@@ -109,6 +116,10 @@ export function Dashboard() {
           }} />
       )}
       {reportOpen && <PatternReport onClose={() => setReportOpen(false)} />}
+      {refreshOpen && (
+        <RefreshWeekModal onClose={() => setRefreshOpen(false)}
+          onDone={() => { setLogVersion((v) => v + 1); void reload(); }} />
+      )}
       {editing && (
         <TripEditor trip={editing} onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); void reload(); }} />

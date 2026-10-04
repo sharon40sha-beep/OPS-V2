@@ -48,6 +48,9 @@ export interface WorkerTripDetail extends TripParams {
   actual_start_at: string | null;
   actual_done_at: string | null;
   is_custodian: boolean;
+  date: string;
+  is_today: boolean;
+  partners: { name: string; is_custodian: boolean }[];
 }
 
 export interface WorkerWeekDay {
@@ -185,4 +188,45 @@ export interface TeamWeek {
   week_start: string;
   today: string;
   trips: TeamTrip[];
+}
+
+export interface MyWeekDay {
+  date: string;
+  is_today: boolean;
+  updated: boolean;
+  trips: { id: string; label: string; leg: Leg; vehicle_type: string; status: TripStatus }[];
+}
+
+export interface MyWeek {
+  week_start: string;
+  today: string;
+  days: MyWeekDay[];
+}
+
+export type RefreshAction = 'full' | 'return_only' | 'create' | 'locked';
+
+export interface RefreshPreview {
+  today: string;
+  items: { date: string; asset: string; action: RefreshAction; legs: number }[];
+}
+
+export interface RefreshResult {
+  replaced: number;
+  created: number;
+  decoys: number;
+  fallbacks: number;
+  warnings: { asset: string; date: string; reason: string; message: string }[];
+}
+
+export interface RefreshLogEntry {
+  id: string;
+  created_at: string;
+  admin: string;
+  range_from: string | null;
+  range_to: string | null;
+  include_today: boolean;
+  include_next_week: boolean;
+  replaced: number;
+  created: number;
+  reason: string | null;
 }

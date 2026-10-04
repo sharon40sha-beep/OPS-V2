@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { dayName, shortDate, timeOf, todayIso } from '../lib/dates';
+import { dayName, shortDate, todayIso } from '../lib/dates';
 import { useAsync } from '../lib/useAsync';
 import type { WorkerTask, WorkerTripDetail } from '../lib/types';
 import { StatusChip } from '../components/StatusChip';
-import { TripParams } from '../components/TripParams';
+import { TripDetail } from '../components/TripDetail';
 
 export function Today() {
   const { token } = useAuth();
@@ -86,19 +86,7 @@ function TaskCard({ task, open, onToggle, onChanged }: {
           {!detail && !error && <p className="muted">טוען…</p>}
           {detail && (
             <>
-              {detail.is_custodian && <p className="note">אתה אחראי המוצר היום — יציאה וחזרה.</p>}
-              <TripParams trip={detail} />
-              {(detail.actual_start_at || detail.actual_done_at) && (
-                <p className="muted small">
-                  {detail.actual_start_at && `יציאה ${timeOf(detail.actual_start_at)}`}
-                  {detail.actual_done_at && ` · חזרה ${timeOf(detail.actual_done_at)}`}
-                </p>
-              )}
-              {detail.problem_note && (
-                <p className={status === 'problem' ? 'problem-note' : 'note'}>
-                  {status === 'problem' ? 'בעיה' : 'הערה'}: {detail.problem_note}
-                </p>
-              )}
+              <TripDetail detail={detail} />
 
               {status !== 'done' && !mode && (
                 <div className="actions">
