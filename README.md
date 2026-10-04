@@ -7,6 +7,13 @@ React + Vite + TypeScript, Supabase (Postgres) כ-backend.
 
 1. **DB** — הרץ ב-Supabase SQL Editor, לפי הסדר, את כל הקבצים ב-`supabase/migrations/` (0001 → … → 0006).
 
+2. **Env** — `cp .env.example .env`
+3. `npm install && npm run dev`
+
+Build לפרודקשן: `npm run build` → תיקיית `dist/` (סטטית, כל hosting).
+
+ב-Vercel (או כל hosting) מגדירים את `VITE_SUPABASE_URL` ו-`VITE_SUPABASE_PUBLISHABLE_KEY` כ-Environment Variables.
+
 ### מוסכמה ל-migration חדש
 כל migration מתחיל, בתוך ה-transaction, ב:
 ```sql
@@ -14,10 +21,6 @@ select app_private.reset_data_if_pre_pilot();
 ```
 עד שהמנהל לוחץ "הכרז תחילת פיילוט" (הגדרות) — זה מוחק נסיעות והיעדרויות. אחרי ההכרזה
 (`app_settings.pilot_start_date`, נעול לשינוי) — לא נוגע בנתונים.
-2. **Env** — `cp .env.example .env`
-3. `npm install && npm run dev`
-
-Build לפרודקשן: `npm run build` → תיקיית `dist/` (סטטית, כל hosting).
 
 ## אבטחה
 
