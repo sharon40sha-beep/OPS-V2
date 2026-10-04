@@ -32,11 +32,14 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
   const [error, setError] = useState<string | null>(null);
 
   const isCompany = vehicle === 'company';
+  // Legs that run with a decoy (the decoy, or the real leg linked to one) use decoy-safe options only.
+  const decoyLeg = isDecoy || !!trip.decoy_trip_id;
 
   // Options usable with the given vehicle class (company-only values are hidden for other vehicles).
   const allowed = (cat: Category, company: boolean) =>
     settings?.config
-      .filter((c) => c.category === cat && c.is_active && (company || !c.company_only))
+      .filter((c) => c.category === cat && c.is_active && (company || !c.company_only)
+        && (cat === 'vehicle_type' || !decoyLeg || c.decoy_ok))
       .map((c) => c.value) ?? [];
 
   const options = (cat: Category, current: string) => {
@@ -161,6 +164,9 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
               </span>
             </fieldset>
           </>
+        )}
+        {planned && decoyLeg && (
+          <p className="hint">קטע עם פיתוי — מוצגות רק אפשרויות שמותרות בפיתוי (חניון מקורה בכניסה וביציאה).</p>
         )}
         {!planned && <p className="muted small">הקטע כבר יצא לדרך — ניתן לשנות רק את ההחרגה מהניתוח.</p>}
         <label className="check">

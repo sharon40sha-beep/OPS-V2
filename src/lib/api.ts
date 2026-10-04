@@ -38,6 +38,7 @@ const MESSAGES: Record<string, string> = {
   CUSTODIAN_LOCKED: 'לא ניתן להחליף אחראי מוצר — אחד הקטעים כבר יצא לדרך',
   CUSTODIAN_REQUIRED: 'אחראי המוצר חייב להיות משובץ בקטע',
   VEHICLE_BLOCKED: 'הרכב סומן כלא זמין ביום זה',
+  DECOY_UNSAFE_OPTION: 'בקטע עם פיתוי מותרות רק אפשרויות שמסומנות "מותר בפיתוי" (חניון מקורה)',
   PIN_REQUIRED: 'יש להגדיר קוד לעובד חדש',
   NAME_TAKEN: 'השם כבר קיים',
   VALUE_TAKEN: 'הערך כבר קיים בקטגוריה',
@@ -118,7 +119,10 @@ export const api = {
     call<void>('admin_unlock_account', { p_token: token, p_pin: pin, p_employee_id: employeeId }),
   saveAsset: (token: string, id: string, homeWarehouse: string, isActive: boolean) =>
     call<void>('admin_save_asset', { p_token: token, p_id: id, p_home_warehouse: homeWarehouse, p_is_active: isActive }),
-  saveConfig: (token: string, id: string | null, category: string, value: string, isActive: boolean, companyOnly: boolean) =>
+  saveConfig: (
+    token: string, id: string | null, category: string, value: string,
+    isActive: boolean, companyOnly: boolean, decoyOk: boolean,
+  ) =>
     call<void>('admin_save_config', {
       p_token: token,
       p_id: id,
@@ -126,6 +130,7 @@ export const api = {
       p_value: value,
       p_is_active: isActive,
       p_company_only: companyOnly,
+      p_decoy_ok: decoyOk,
     }),
   declarePilot: (token: string, pin: string, wipeTestData: boolean) =>
     call<{ pilot_start_date: string }>('admin_declare_pilot', { p_token: token, p_pin: pin, p_wipe_test_data: wipeTestData }),

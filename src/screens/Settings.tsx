@@ -360,7 +360,7 @@ function ConfigCategory({ category, data, reload }: SectionProps & { category: C
 
   const add = async (e: FormEvent) => {
     e.preventDefault();
-    if (await run(() => api.saveConfig(token, null, category, newValue, true, false))) setNewValue('');
+    if (await run(() => api.saveConfig(token, null, category, newValue, true, false, true))) setNewValue('');
   };
 
   return (
@@ -386,17 +386,24 @@ function ConfigCategory({ category, data, reload }: SectionProps & { category: C
             <div className="row">
               {value !== c.value && (
                 <button className="btn small primary" disabled={busy}
-                  onClick={() => run(() => api.saveConfig(token, c.id, category, value, c.is_active, c.company_only))}>שמור</button>
+                  onClick={() => run(() => api.saveConfig(token, c.id, category, value, c.is_active, c.company_only, c.decoy_ok))}>שמור</button>
               )}
               {!fixedCodes && (
                 <button className={`btn small ${c.company_only ? 'primary' : ''}`} disabled={busy}
                   title="אפשרות זו תוגרל/תותר רק ברכב חברה"
-                  onClick={() => run(() => api.saveConfig(token, c.id, category, c.value, c.is_active, !c.company_only))}>
+                  onClick={() => run(() => api.saveConfig(token, c.id, category, c.value, c.is_active, !c.company_only, c.decoy_ok))}>
                   {c.company_only ? 'רק רכב חברה ✓' : 'רק רכב חברה'}
                 </button>
               )}
+              {!fixedCodes && (
+                <button className={`btn small ${c.decoy_ok ? 'primary' : ''}`} disabled={busy}
+                  title="מותר בקטע שיש בו פיתוי (לשני הרכבים)"
+                  onClick={() => run(() => api.saveConfig(token, c.id, category, c.value, c.is_active, c.company_only, !c.decoy_ok))}>
+                  {c.decoy_ok ? 'מותר בפיתוי ✓' : 'אסור בפיתוי'}
+                </button>
+              )}
               <button className="btn small" disabled={busy}
-                onClick={() => run(() => api.saveConfig(token, c.id, category, c.value, !c.is_active, c.company_only))}>
+                onClick={() => run(() => api.saveConfig(token, c.id, category, c.value, !c.is_active, c.company_only, c.decoy_ok))}>
                 {c.is_active ? 'השבת' : 'הפעל'}
               </button>
             </div>
