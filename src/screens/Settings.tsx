@@ -36,6 +36,7 @@ export function Settings() {
       {data && section === 'assets' && <Assets data={data} reload={reload} />}
       {data && section === 'config' && <Config data={data} reload={reload} />}
       {data && section === 'budget' && <Budget data={data} reload={reload} />}
+      <p className="muted small build-id">גרסה {__BUILD_ID__}</p>
     </section>
   );
 }
@@ -146,7 +147,7 @@ function Employees({ data, reload }: SectionProps) {
           <div className="row">
             {e.locked_until && <button className="btn small" onClick={() => unlock(e)}>שחרר</button>}
             <button className="btn small" onClick={() => setAbsencesFor(e)}>
-              זמינות{countUpcoming(data, e.id) ? ` (${countUpcoming(data, e.id)})` : ''}
+              זמינות / היעדרות{countUpcoming(data, e.id) ? ` (${countUpcoming(data, e.id)})` : ''}
             </button>
             <button className="btn small" onClick={() => setEditing(e)}>ערוך</button>
           </div>
