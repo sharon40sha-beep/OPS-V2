@@ -291,3 +291,4 @@ button.chip { border: 0; cursor: pointer; }
 .clickable { cursor: pointer; }
 .refresh-log summary { cursor: pointer; color: var(--muted); }
 .mini tr.muted td { color: var(--muted); }
+.trip.mine { border-color: var(--gold); }
