@@ -31,6 +31,7 @@ export function Settings() {
         ))}
       </div>
       {error && <p className="error">{error}</p>}
+      {data && <PilotCard data={data} reload={reload} />}
       {data && section === 'employees' && <Employees data={data} reload={reload} />}
       {data && section === 'assets' && <Assets data={data} reload={reload} />}
       {data && section === 'config' && <Config data={data} reload={reload} />}
@@ -63,6 +64,54 @@ function useMutation(reload: () => Promise<void>) {
     }
   };
   return { run, error, busy };
+}
+
+// ---------------------------------------------------------------- pilot
+
+function PilotCard({ data, reload }: SectionProps) {
+  const { token } = useAuth();
+  const { run, error, busy } = useMutation(reload);
+  const [confirming, setConfirming] = useState(false);
+  const [wipe, setWipe] = useState(true);
+  const stepUp = useStepUp();
+
+  if (data.pilot_start_date) {
+    return (
+      <div className="card pilot on">
+        <strong>פיילוט פעיל מ-{shortDate(data.pilot_start_date)}</strong>
+        <span className="muted small">עדכוני גרסה לא נוגעים בנתונים.</span>
+      </div>
+    );
+  }
+
+  const declare = async () => {
+    const pin = await stepUp.ask('הכרזת תחילת פיילוט — פעולה בלתי הפיכה');
+    if (pin && (await run(() => api.declarePilot(token, pin, wipe)))) setConfirming(false);
+  };
+
+  return (
+    <div className="card pilot stack">
+      <strong>מצב ניסיון</strong>
+      <span className="muted small">כל עדכון גרסה מוחק את הנסיעות וההיעדרויות. הגדרות, עובדים ונכסים נשמרים.</span>
+      {error && <p className="error">{error}</p>}
+      {!confirming ? (
+        <button className="btn" onClick={() => setConfirming(true)}>הכרז תחילת פיילוט</button>
+      ) : (
+        <>
+          <p className="small">מרגע ההכרזה מנגנון המחיקה מושבת <b>לצמיתות</b> ולא ניתן לבטל.</p>
+          <label className="check">
+            <input type="checkbox" checked={wipe} onChange={(e) => setWipe(e.target.checked)} />
+            מחק נסיעות ניסיון לפני תחילת הפיילוט (מומלץ — כדי שלא ישפיעו על ההגרלות)
+          </label>
+          <div className="row">
+            <button className="btn primary" disabled={busy} onClick={declare}>אשר והכרז</button>
+            <button className="btn ghost" onClick={() => setConfirming(false)}>ביטול</button>
+          </div>
+        </>
+      )}
+      {stepUp.element}
+    </div>
+  );
 }
 
 // ---------------------------------------------------------------- employees

@@ -236,3 +236,7 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--gold); outl
 .problem-note { white-space: pre-line; }
 .align-start { align-self: flex-start; }
 button.chip { border: 0; cursor: pointer; }
+.alert { border: 1px solid var(--bad); background: rgba(229, 96, 79, 0.08); color: var(--bad); border-radius: 10px; padding: 10px 12px; }
+.pilot { display: flex; flex-direction: column; gap: 6px; border-color: var(--gold); }
+.pilot.on { border-color: var(--ok); }
+.pilot.on strong { color: var(--ok); }

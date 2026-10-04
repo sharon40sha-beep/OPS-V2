@@ -33,6 +33,7 @@ const MESSAGES: Record<string, string> = {
   LEAD_NOT_ALONE: 'נהג ראשי לא יוצא לבד עם המוצר — יש לשבץ עובד נוסף',
   DECOY_SOLO: 'בנסיעת פיתוי הנהג הראשי יוצא לבד',
   COMPANY_ONLY_OPTION: 'אחת האפשרויות שנבחרו מותרת רק ברכב חברה',
+  PILOT_ALREADY_STARTED: 'הפיילוט כבר הוכרז',
   PIN_REQUIRED: 'יש להגדיר קוד לעובד חדש',
   NAME_TAKEN: 'השם כבר קיים',
   VALUE_TAKEN: 'הערך כבר קיים בקטגוריה',
@@ -122,6 +123,8 @@ export const api = {
       p_is_active: isActive,
       p_company_only: companyOnly,
     }),
+  declarePilot: (token: string, pin: string, wipeTestData: boolean) =>
+    call<{ pilot_start_date: string }>('admin_declare_pilot', { p_token: token, p_pin: pin, p_wipe_test_data: wipeTestData }),
   setAbsence: (token: string, employeeId: string, date: string, absent: boolean, note?: string) =>
     call<void>('admin_set_absence', {
       p_token: token,

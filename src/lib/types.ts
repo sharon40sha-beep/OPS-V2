@@ -90,7 +90,7 @@ export interface GenerateResult {
   decoys: number;
   fallbacks: number;
   skipped: { asset: string; date: string; reason: string }[];
-  warnings: { asset: string; date: string; reason: string }[];
+  warnings: { asset: string; date: string; reason: string; message: string }[];
 }
 
 export interface EmployeeRow {
@@ -126,6 +126,7 @@ export interface BudgetRow {
 
 export interface Settings {
   me: string;
+  pilot_start_date: string | null;
   employees: EmployeeRow[];
   assets: AssetRow[];
   config: ConfigRow[];

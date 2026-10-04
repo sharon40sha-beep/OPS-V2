@@ -202,10 +202,10 @@ function GenerateModal({ defaultDate, onClose, onDone }: {
             <p className="muted small">{result.fallbacks} נסיעות נבחרו כ"הכי פחות חוזרות" (לא נמצא שילוב נקי ב-10 ניסיונות).</p>
           )}
           {result.warnings.length > 0 && (
-            <p className="error small">
-              נהג ראשי לא שובץ ב: {result.warnings.map((w) => `${dayName(w.date)} ${shortDate(w.date)}`).join(', ')}
-              {' '}(אין אפשרות לפיתוי או מכסת רכב חברה מוצתה)
-            </p>
+            <div className="alert stack">
+              <strong>⚠ נדרשת תשומת לב</strong>
+              {result.warnings.map((w) => <p key={`${w.asset}-${w.date}-${w.reason}`}>{w.message}</p>)}
+            </div>
           )}
           {result.skipped.length > 0 && (
             <p className="muted small">
