@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { shortDate, dayName, timeOf, todayIso } from '../lib/dates';
+import { addDays, dayName, shortDate, timeOf, todayIso, weekMonday } from '../lib/dates';
 import { CATEGORIES, CATEGORY_LABEL, PIN_POLICY_TEXT, optionLabel, pinPolicyOk, vehicleLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
 import type { Category, EmployeeRow, Settings as SettingsData } from '../lib/types';
@@ -146,7 +146,7 @@ function Employees({ data, reload }: SectionProps) {
           <div className="row">
             {e.locked_until && <button className="btn small" onClick={() => unlock(e)}>שחרר</button>}
             <button className="btn small" onClick={() => setAbsencesFor(e)}>
-              היעדרויות{countUpcoming(data, e.id) ? ` (${countUpcoming(data, e.id)})` : ''}
+              זמינות{countUpcoming(data, e.id) ? ` (${countUpcoming(data, e.id)})` : ''}
             </button>
             <button className="btn small" onClick={() => setEditing(e)}>ערוך</button>
           </div>
@@ -170,37 +170,43 @@ const countUpcoming = (data: SettingsData, employeeId: string) =>
 function AbsencesModal({ employee, data, reload, onClose }: SectionProps & { employee: EmployeeRow; onClose: () => void }) {
   const { token } = useAuth();
   const { run, error, busy } = useMutation(reload);
-  const [date, setDate] = useState(todayIso());
-  const [note, setNote] = useState('');
-  const list = data.absences.filter((a) => a.employee_id === employee.id);
-
-  const add = async (e: FormEvent) => {
-    e.preventDefault();
-    if (await run(() => api.setAbsence(token, employee.id, date, true, note))) setNote('');
-  };
+  const [monday, setMonday] = useState(() => weekMonday(todayIso()));
+  const days = [0, 1, 2, 3, 4].map((i) => addDays(monday, i));
+  const absent = new Set(data.absences.filter((a) => a.employee_id === employee.id).map((a) => a.date));
+  const upcoming = data.absences
+    .filter((a) => a.employee_id === employee.id && a.date >= todayIso() && (a.date < monday || a.date > days[4]));
 
   return (
-    <Modal title={`היעדרויות · ${employee.name}`} onClose={onClose}>
+    <Modal title={`זמינות · ${employee.name}`} onClose={onClose}>
       <p className="hint">
-        עובד שמסומן כנעדר לא ישובץ בהגרלה לאותו יום. סמן לפני "בנה שבוע" —
+        לחץ על יום כדי לסמן אותו כלא זמין (או להחזיר לזמין). השינוי נשמר מיד ונלקח בחשבון ב"בנה שבוע";
         נסיעות שכבר נבנו יש לערוך ידנית.
       </p>
+      <div className="week-nav">
+        <button className="icon-btn" onClick={() => setMonday(addDays(monday, -7))} aria-label="שבוע קודם">›</button>
+        <strong>{shortDate(monday)} – {shortDate(days[4])}</strong>
+        <button className="icon-btn" onClick={() => setMonday(addDays(monday, 7))} aria-label="שבוע הבא">‹</button>
+      </div>
       {error && <p className="error">{error}</p>}
-      {list.length === 0 && <p className="muted small">אין היעדרויות מתוכננות</p>}
-      {list.map((a) => (
-        <div key={a.date} className="card list-row">
-          <span className="grow">יום {dayName(a.date)} {shortDate(a.date)}{a.note ? ` · ${a.note}` : ''}</span>
-          <button className="btn small" disabled={busy}
-            onClick={() => run(() => api.setAbsence(token, employee.id, a.date, false))}>הסר</button>
-        </div>
-      ))}
-      <form className="stack" onSubmit={add}>
-        <div className="row">
-          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="grow" />
-          <input placeholder="סיבה (רשות)" value={note} onChange={(e) => setNote(e.target.value)} className="grow" />
-        </div>
-        <button className="btn primary" disabled={busy || !date}>סמן היעדרות</button>
-      </form>
+      <div className="day-toggles">
+        {days.map((d) => {
+          const off = absent.has(d);
+          return (
+            <button key={d} className={`day-toggle ${off ? 'off' : 'on'}`} disabled={busy || d < todayIso()}
+              aria-pressed={off} aria-label={`${dayName(d)} ${shortDate(d)} ${off ? 'לא זמין' : 'זמין'}`}
+              onClick={() => run(() => api.setAbsence(token, employee.id, d, !off))}>
+              <span className="day-toggle-name">{dayName(d)}</span>
+              <span className="muted small">{shortDate(d)}</span>
+              <span className="day-toggle-state">{off ? '✕ לא זמין' : '✓ זמין'}</span>
+            </button>
+          );
+        })}
+      </div>
+      {upcoming.length > 0 && (
+        <p className="muted small">
+          לא זמין גם ב: {upcoming.map((a) => `${dayName(a.date)} ${shortDate(a.date)}`).join(', ')}
+        </p>
+      )}
     </Modal>
   );
 }
