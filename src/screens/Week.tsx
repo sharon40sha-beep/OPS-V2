@@ -6,19 +6,19 @@ import { legLabel, vehicleLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
 import type { TeamTrip } from '../lib/types';
 import { StatusChip } from '../components/StatusChip';
+import { MyWeek } from './MyWeek';
 
-/**
- * Team schedule for the week, read-only for everyone: who goes, which leg,
- * which vehicle, status. Routes are not shown here (own trip details are in
- * "היום"; admins edit in "בקרה").
- */
+/** "השבוע": admins see the team schedule, workers only their own legs (decoy isolation). */
 export function Week() {
-  const { token, me } = useAuth();
+  const { me } = useAuth();
+  return me.role === 'admin' ? <TeamWeek /> : <MyWeek />;
+}
+
+/** Admin-only: the whole team's schedule (workers see only their own legs). */
+function TeamWeek() {
+  const { token } = useAuth();
   const [offset, setOffset] = useState(0);
   const { data, error, loading } = useAsync(() => api.teamWeek(token, offset), [token, offset]);
-  const isAdmin = me.role === 'admin';
-  const canPrev = isAdmin || offset > 0;
-  const canNext = isAdmin || offset < 1;
 
   const days = useMemo(() => {
     if (!data) return [];
@@ -35,15 +35,14 @@ export function Week() {
       </header>
 
       <div className="week-nav">
-        <button className="icon-btn" disabled={!canPrev} onClick={() => setOffset(offset - 1)} aria-label="שבוע קודם">›</button>
+        <button className="icon-btn" onClick={() => setOffset(offset - 1)} aria-label="שבוע קודם">›</button>
         <div className="week-nav-label">
           {data && <strong>{shortDate(data.week_start)} – {shortDate(addDays(data.week_start, 4))}</strong>}
           <span className="muted small">{offset === 0 ? 'השבוע' : offset === 1 ? 'שבוע הבא' : ''}</span>
         </div>
-        <button className="icon-btn" disabled={!canNext} onClick={() => setOffset(offset + 1)} aria-label="שבוע הבא">‹</button>
+        <button className="icon-btn" onClick={() => setOffset(offset + 1)} aria-label="שבוע הבא">‹</button>
       </div>
 
-      {!isAdmin && <p className="hint">תצוגה בלבד. פרטי המסלול של המשימה שלך מופיעים במסך "היום".</p>}
       {error && <p className="error">{error}</p>}
       {loading && !data && <p className="muted">טוען…</p>}
 

@@ -3,6 +3,10 @@ import type {
   AdminTrip,
   AdminWeek,
   GenerateResult,
+  MyWeek,
+  RefreshLogEntry,
+  RefreshPreview,
+  RefreshResult,
   PatternReport,
   TeamWeek,
   Me,
@@ -39,6 +43,8 @@ const MESSAGES: Record<string, string> = {
   CUSTODIAN_LOCKED: 'לא ניתן להחליף אחראי מוצר — אחד הקטעים כבר יצא לדרך',
   CUSTODIAN_REQUIRED: 'אחראי המוצר חייב להיות משובץ בקטע',
   VEHICLE_BLOCKED: 'הרכב סומן כלא זמין ביום זה',
+  REFRESH_BLOCKED: 'הרענון בוטל ולא בוצע שום שינוי. לא נמצאה תוכנית חוקית',
+  REFRESH_EMPTY: 'אין בטווח הזה משימות שאפשר לרענן',
   DECOY_UNSAFE_OPTION: 'בקטע עם פיתוי מותרות רק אפשרויות שמסומנות "מותר בפיתוי" (חניון מקורה)',
   PIN_REQUIRED: 'יש להגדיר קוד לעובד חדש',
   NAME_TAKEN: 'השם כבר קיים',
@@ -64,8 +70,11 @@ export function setSessionInvalidHandler(fn: (() => void) | null) {
 async function call<T>(fn: string, args: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.rpc(fn, args);
   if (error) {
-    // RPCs raise bare codes, optionally "CODE:detail".
-    const [code, detail] = (error.message ?? '').split(':');
+    // RPCs raise bare codes, optionally "CODE:detail" (detail may contain anything).
+    const raw = error.message ?? '';
+    const cut = raw.indexOf(':');
+    const code = cut < 0 ? raw : raw.slice(0, cut);
+    const detail = cut < 0 ? undefined : raw.slice(cut + 1);
     const err = MESSAGES[code]
       ? new ApiError(code, detail)
       : /check constraint/.test(error.message ?? '')
@@ -94,6 +103,20 @@ export const api = {
   workerSetStatus: (token: string, tripId: string, action: 'start' | 'done' | 'problem' | 'note', note?: string) =>
     call<void>('worker_set_status', { p_token: token, p_trip_id: tripId, p_action: action, p_note: note ?? null }),
   workerWeek: (token: string) => call<WorkerWeekDay[]>('worker_week', { p_token: token }),
+  workerMyWeek: (token: string, weekOffset: number) =>
+    call<MyWeek>('worker_my_week', { p_token: token, p_week_offset: weekOffset }),
+  workerMarkDaySeen: (token: string, date: string) =>
+    call<void>('worker_mark_day_seen', { p_token: token, p_date: date }),
+  refreshPreview: (token: string, includeToday: boolean, includeNextWeek: boolean) =>
+    call<RefreshPreview>('admin_refresh_preview', {
+      p_token: token, p_include_today: includeToday, p_include_next_week: includeNextWeek,
+    }),
+  refreshWeek: (token: string, pin: string, includeToday: boolean, includeNextWeek: boolean, reason: string) =>
+    call<RefreshResult>('admin_refresh_week', {
+      p_token: token, p_pin: pin, p_include_today: includeToday,
+      p_include_next_week: includeNextWeek, p_reason: reason || null,
+    }),
+  refreshLog: (token: string) => call<RefreshLogEntry[]>('admin_refresh_log', { p_token: token }),
   teamWeek: (token: string, weekOffset: number) =>
     call<TeamWeek>('team_week', { p_token: token, p_week_offset: weekOffset }),
 
