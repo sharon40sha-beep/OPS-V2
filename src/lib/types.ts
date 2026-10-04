@@ -169,3 +169,20 @@ export interface Settings {
   budget: BudgetRow[];
   absences: Absence[];
 }
+
+export interface TeamTrip {
+  id: string;
+  date: string;
+  leg: Leg;
+  asset_id: string;
+  vehicle_type: string;
+  status: TripStatus;
+  is_mine: boolean;
+  crew: { name: string; is_custodian: boolean }[];
+}
+
+export interface TeamWeek {
+  week_start: string;
+  today: string;
+  trips: TeamTrip[];
+}

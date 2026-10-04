@@ -21,6 +21,7 @@ export function Dashboard() {
   const [reportOpen, setReportOpen] = useState(false);
   const [editing, setEditing] = useState<AdminTrip | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [expandAll, setExpandAll] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const stepUp = useStepUp();
 
@@ -75,6 +76,12 @@ export function Dashboard() {
         </div>
       )}
 
+      {data && data.trips.length > 0 && (
+        <button className="link align-start" onClick={() => setExpandAll((x) => !x)}>
+          {expandAll ? 'כווץ את כל המשימות' : 'הצג את כל הפרטים של כל המשימות'}
+        </button>
+      )}
+
       {error && <p className="error">{error}</p>}
       {actionError && <p className="error">{actionError}</p>}
       {loading && !data && <p className="muted">טוען…</p>}
@@ -86,7 +93,7 @@ export function Dashboard() {
           {trips.length === 0 && <p className="muted small">אין נסיעות</p>}
           <div className="stack">
             {trips.map((t) => (
-              <AdminTripCard key={t.id} trip={t} open={openId === t.id}
+              <AdminTripCard key={t.id} trip={t} open={expandAll || openId === t.id}
                 onToggle={() => setOpenId(openId === t.id ? null : t.id)}
                 onEdit={() => setEditing(t)} onDelete={() => remove(t)} />
             ))}
@@ -146,7 +153,7 @@ function AdminTripCard({ trip, open, onToggle, onEdit, onDelete }: {
           )}
           {trip.excluded_from_analysis && <p className="muted small">מוחרג מניתוח הדפוסים</p>}
           <div className="row">
-            <button className="btn" onClick={onEdit}>{trip.status === 'planned' ? 'ערוך' : 'הגדרות ניתוח'}</button>
+            <button className="btn" onClick={onEdit}>{trip.status !== 'done' ? 'ערוך' : 'הגדרות ניתוח'}</button>
             {trip.status === 'planned' && <button className="btn danger" onClick={onDelete}>מחק</button>}
           </div>
         </div>

@@ -16,7 +16,8 @@ const LEG_FIELDS: Record<AdminTrip['leg'], LegField[]> = {
 
 export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClose: () => void; onSaved: () => void }) {
   const { token } = useAuth();
-  const planned = trip.status === 'planned';
+  // Anything not yet done can be edited (planned, under way, or flagged with a problem).
+  const planned = trip.status !== 'done';
   const isDecoy = trip.trip_type === 'decoy';
   const fields = LEG_FIELDS[trip.leg];
   const { data: settings, error: loadError } = useAsync(() => api.settings(token), [token]);
@@ -168,7 +169,8 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
         {planned && decoyLeg && (
           <p className="hint">קטע עם פיתוי — מוצגות רק אפשרויות שמותרות בפיתוי (חניון מקורה בכניסה וביציאה).</p>
         )}
-        {!planned && <p className="muted small">הקטע כבר יצא לדרך — ניתן לשנות רק את ההחרגה מהניתוח.</p>}
+        {!planned && <p className="muted small">הקטע כבר בוצע — ניתן לשנות רק את ההחרגה מהניתוח.</p>}
+        {trip.status === 'active' && <p className="hint">הקטע כבר בדרך — שינויים יופיעו לעובדים מיד.</p>}
         <label className="check">
           <input type="checkbox" checked={excluded} onChange={(e) => setExcluded(e.target.checked)} />
           החרג מניתוח דפוסים (לא ייספר בבדיקת אנטי-מדפסיות)
