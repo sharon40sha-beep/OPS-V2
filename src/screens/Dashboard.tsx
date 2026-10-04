@@ -231,10 +231,10 @@ function GenerateModal({ defaultDate, onClose, onDone }: {
           </label>
           {monday && <p className="muted small">ייבנו ימים ב'–ו': {shortDate(monday)} – {shortDate(addDays(monday, 4))}. ימים שכבר קיימים ידולגו.</p>}
           {monday && (
-            <details className="constraints" open>
-              <summary>מגבלות לשבוע</summary>
+            <section className="constraints stack">
+              <h3>מגבלות לשבוע — מי ומה לא זמין</h3>
               <ConstraintsGrid monday={monday} />
-            </details>
+            </section>
           )}
           <label className="field">
             <span>הקוד שלך (אימות נוסף)</span>

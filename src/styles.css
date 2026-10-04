@@ -278,3 +278,6 @@ button.chip { border: 0; cursor: pointer; }
 .day-toggle.on .day-toggle-state { color: var(--ok); }
 .day-toggle.off { border-color: var(--bad); background: rgba(229, 96, 79, 0.15); }
 .day-toggle.off .day-toggle-state { color: var(--bad); font-weight: 600; }
+.constraints { border-top: 1px solid var(--border); padding-top: 12px; }
+.constraints h3 { color: var(--gold); margin: 0; }
+.build-id { text-align: center; }
