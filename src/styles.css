@@ -240,3 +240,27 @@ button.chip { border: 0; cursor: pointer; }
 .pilot { display: flex; flex-direction: column; gap: 6px; border-color: var(--gold); }
 .pilot.on { border-color: var(--ok); }
 .pilot.on strong { color: var(--ok); }
+
+/* constraints grid */
+.constraints summary { cursor: pointer; color: var(--gold); font-weight: 600; padding: 4px 0; }
+.grid { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.grid th, .grid td { padding: 3px 2px; text-align: center; }
+.grid tbody th { text-align: start; font-weight: 500; white-space: nowrap; }
+.grid-section td { text-align: start; color: var(--muted); padding-top: 10px; }
+.cell {
+  width: 100%; min-width: 34px; height: 34px; border-radius: 8px; cursor: pointer;
+  background: var(--surface-2); border: 1px solid var(--border); color: var(--bad); font-weight: 700;
+}
+.cell.off { background: rgba(229, 96, 79, 0.18); border-color: var(--bad); }
+
+/* pattern report */
+.guess { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.9rem; }
+.guess .bad, .mini .bad td { color: var(--bad); }
+.mini { width: 100%; font-size: 0.85rem; border-collapse: collapse; }
+.mini td { padding: 3px 4px; border-top: 1px solid var(--border); }
+.bars { display: flex; flex-direction: column; gap: 4px; }
+.bar-row { display: grid; grid-template-columns: minmax(0, 1.4fr) 2fr 40px; gap: 8px; align-items: center; font-size: 0.85rem; }
+.bar-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bar { height: 8px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--gold); }
+.bar-value { text-align: end; color: var(--muted); }

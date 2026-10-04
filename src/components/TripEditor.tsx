@@ -2,34 +2,36 @@ import { useState, type FormEvent } from 'react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { dayName, shortDate } from '../lib/dates';
-import { CATEGORY_LABEL, optionLabel, positionLabel, slotLabel } from '../lib/labels';
+import { CATEGORY_LABEL, legLabel, optionLabel, positionLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
-import type { AdminTrip, Category, Position, Slot, TripParams } from '../lib/types';
+import type { AdminTrip, Category, Position } from '../lib/types';
 import { Modal } from './Modal';
 
-const SELECT_FIELDS: Category[] = ['vehicle_type', 'exit_point', 'outbound_route', 'factory_entry', 'factory_exit', 'return_route'];
+type LegField = 'exit_point' | 'outbound_route' | 'factory_entry' | 'factory_exit' | 'return_route';
+
+const LEG_FIELDS: Record<AdminTrip['leg'], LegField[]> = {
+  outbound: ['exit_point', 'outbound_route', 'factory_entry'],
+  return: ['factory_exit', 'return_route'],
+};
 
 export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClose: () => void; onSaved: () => void }) {
   const { token } = useAuth();
   const planned = trip.status === 'planned';
+  const isDecoy = trip.trip_type === 'decoy';
+  const fields = LEG_FIELDS[trip.leg];
   const { data: settings, error: loadError } = useAsync(() => api.settings(token), [token]);
-  const [form, setForm] = useState<TripParams>({
-    departure_slot: trip.departure_slot,
-    vehicle_type: trip.vehicle_type,
-    worker_position: trip.worker_position,
-    exit_point: trip.exit_point,
-    outbound_route: trip.outbound_route,
-    factory_entry: trip.factory_entry,
-    factory_exit: trip.factory_exit,
-    return_route: trip.return_route,
-  });
+
+  const [vehicle, setVehicle] = useState(trip.vehicle_type);
+  const [values, setValues] = useState<Record<LegField, string>>(() =>
+    Object.fromEntries(fields.map((f) => [f, trip[f] ?? ''])) as Record<LegField, string>);
+  const [position, setPosition] = useState<Position>(trip.worker_position);
   const [workers, setWorkers] = useState<string[]>(trip.assigned_workers);
+  const [custodian, setCustodian] = useState(trip.custodian_id ?? '');
   const [excluded, setExcluded] = useState(trip.excluded_from_analysis);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const set = <K extends keyof TripParams>(k: K, v: TripParams[K]) => setForm((f) => ({ ...f, [k]: v }));
-  const isCompany = form.vehicle_type === 'company';
+  const isCompany = vehicle === 'company';
 
   // Options usable with the given vehicle class (company-only values are hidden for other vehicles).
   const allowed = (cat: Category, company: boolean) =>
@@ -38,22 +40,21 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
       .map((c) => c.value) ?? [];
 
   const options = (cat: Category, current: string) => {
-    const values = cat === 'vehicle_type' ? allowed(cat, true) : allowed(cat, isCompany);
-    return values.includes(current) ? values : [current, ...values];
+    const list = cat === 'vehicle_type' ? allowed(cat, true) : allowed(cat, isCompany);
+    return list.includes(current) ? list : [current, ...list];
   };
 
-  const changeVehicle = (vehicle: string) => {
-    const company = vehicle === 'company';
-    setForm((f) => {
-      const next = { ...f, vehicle_type: vehicle };
-      // Replace values that are not allowed for the new vehicle class.
-      for (const cat of SELECT_FIELDS) {
-        if (cat === 'vehicle_type') continue;
-        const ok = allowed(cat, company);
-        const key = cat as keyof TripParams;
-        if (ok.length && !ok.includes(next[key])) (next as Record<string, string>)[key] = ok[0];
+  const changeVehicle = (next: string) => {
+    const company = next === 'company';
+    setVehicle(next);
+    // Replace values that are not allowed for the new vehicle class.
+    setValues((v) => {
+      const out = { ...v };
+      for (const f of fields) {
+        const ok = allowed(f, company);
+        if (ok.length && !ok.includes(out[f])) out[f] = ok[0];
       }
-      return next;
+      return out;
     });
     // A lead driver only drives the company car: drop them when switching away.
     if (!company && settings) {
@@ -62,8 +63,14 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
     }
   };
 
+  // Changing the custodian swaps them in this leg (the server also updates the other leg).
+  const changeCustodian = (next: string) => {
+    setWorkers((w) => [...new Set(w.map((id) => (id === custodian ? next : id)).concat(next))]);
+    setCustodian(next);
+  };
+
   const people = settings?.employees.filter((e) => e.is_active || workers.includes(e.id)) ?? [];
-  const isDecoy = trip.trip_type === 'decoy';
+  const custodianOptions = settings?.employees.filter((e) => e.is_active && !e.is_lead_driver) ?? [];
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -71,8 +78,14 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
     setError(null);
     try {
       const payload = planned
-        ? { ...form, worker_position: (isCompany ? form.worker_position : 'none') as Position,
-            assigned_workers: workers, excluded_from_analysis: excluded }
+        ? {
+            vehicle_type: vehicle,
+            ...values,
+            worker_position: isCompany ? position : ('none' as Position),
+            assigned_workers: workers,
+            ...(isDecoy || custodian === trip.custodian_id ? {} : { custodian_id: custodian }),
+            excluded_from_analysis: excluded,
+          }
         : { excluded_from_analysis: excluded };
       await api.updateTrip(token, trip.id, payload);
       onSaved();
@@ -84,46 +97,56 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
   };
 
   return (
-    <Modal title={`${trip.trip_type === 'decoy' ? 'פיתוי' : 'נסיעה'} ${trip.asset_id} · ${dayName(trip.date)} ${shortDate(trip.date)}`} onClose={onClose}>
+    <Modal
+      title={`${isDecoy ? 'פיתוי' : legLabel(trip.leg)} ${trip.asset_id} · ${dayName(trip.date)} ${shortDate(trip.date)}`}
+      onClose={onClose}
+    >
       {loadError && <p className="error">{loadError}</p>}
       <form className="stack" onSubmit={submit}>
         {planned && settings && (
           <>
             <label className="field">
-              <span>שעת יציאה</span>
-              <select value={form.departure_slot} onChange={(e) => set('departure_slot', e.target.value as Slot)}>
-                {(['morning', 'noon'] as Slot[]).map((s) => <option key={s} value={s}>{slotLabel(s)}</option>)}
+              <span>{CATEGORY_LABEL.vehicle_type}</span>
+              <select value={vehicle} onChange={(e) => changeVehicle(e.target.value)}>
+                {options('vehicle_type', vehicle).map((v) => (
+                  <option key={v} value={v}>{optionLabel('vehicle_type', v)}</option>
+                ))}
               </select>
             </label>
-            {SELECT_FIELDS.map((cat) => (
-              <label key={cat} className="field">
-                <span>{CATEGORY_LABEL[cat]}</span>
-                <select value={form[cat as keyof TripParams]} onChange={(e) =>
-                  cat === 'vehicle_type' ? changeVehicle(e.target.value) : set(cat as keyof TripParams, e.target.value)}>
-                  {options(cat, form[cat as keyof TripParams]).map((v) => (
-                    <option key={v} value={v}>{optionLabel(cat, v)}</option>
-                  ))}
+            {fields.map((f) => (
+              <label key={f} className="field">
+                <span>{CATEGORY_LABEL[f]}</span>
+                <select value={values[f]} onChange={(e) => setValues((v) => ({ ...v, [f]: e.target.value }))}>
+                  {options(f, values[f]).map((v) => <option key={v} value={v}>{v}</option>)}
                 </select>
               </label>
             ))}
+            {!isDecoy && (
+              <label className="field">
+                <span>אחראי מוצר (לכל היום — מתעדכן גם בקטע השני)</span>
+                <select value={custodian} onChange={(e) => changeCustodian(e.target.value)}>
+                  {custodianOptions.map((e) => <option key={e.id} value={e.id}>{e.name}</option>)}
+                </select>
+              </label>
+            )}
             {isCompany && !isDecoy && (
               <label className="field">
                 <span>מיקום עובד</span>
-                <select value={form.worker_position === 'none' ? '' : form.worker_position}
-                  onChange={(e) => set('worker_position', e.target.value as Position)}>
+                <select value={position === 'none' ? '' : position} onChange={(e) => setPosition(e.target.value as Position)}>
                   <option value="" disabled>בחר…</option>
                   {(['front', 'back'] as Position[]).map((p) => <option key={p} value={p}>{positionLabel(p)}</option>)}
                 </select>
               </label>
             )}
             <fieldset className="field">
-              <span>עובדים משובצים</span>
+              <span>משובצים בקטע</span>
               <div className="checks">
                 {people.map((e) => (
                   <label key={e.id} className="check">
-                    <input type="checkbox" checked={workers.includes(e.id)}
+                    <input type="checkbox" checked={workers.includes(e.id)} disabled={e.id === custodian && !isDecoy}
                       onChange={(ev) => setWorkers((w) => ev.target.checked ? [...w, e.id] : w.filter((x) => x !== e.id))} />
                     {e.name}
+                    {e.id === custodian && !isDecoy && <span className="chip small gold">אחראי</span>}
                     {e.is_lead_driver && <span className="chip small">נהג ראשי</span>}
                     {e.role === 'admin' && <span className="chip small">מנהל</span>}
                   </label>
@@ -133,16 +156,16 @@ export function TripEditor({ trip, onClose, onSaved }: { trip: AdminTrip; onClos
                 {isDecoy
                   ? 'בפיתוי הנהג הראשי יוצא לבד.'
                   : isCompany
-                    ? 'נהג ראשי לא יוצא לבד עם המוצר — לפחות עובד אחד נוסף.'
+                    ? 'נהג ראשי לא יוצא לבד עם המוצר — אחראי המוצר תמיד איתו.'
                     : 'נהג ראשי נוהג רק ברכב חברה.'}
               </span>
             </fieldset>
           </>
         )}
-        {!planned && <p className="muted small">הנסיעה כבר יצאה לדרך — ניתן לשנות רק את ההחרגה מהניתוח.</p>}
+        {!planned && <p className="muted small">הקטע כבר יצא לדרך — ניתן לשנות רק את ההחרגה מהניתוח.</p>}
         <label className="check">
           <input type="checkbox" checked={excluded} onChange={(e) => setExcluded(e.target.checked)} />
-          החרג מניתוח דפוסים (לא תיספר בבדיקת אנטי-מדפסיות)
+          החרג מניתוח דפוסים (לא ייספר בבדיקת אנטי-מדפסיות)
         </label>
         {error && <p className="error">{error}</p>}
         <button className="btn primary block" disabled={busy || (planned && !settings)}>{busy ? 'שומר…' : 'שמור'}</button>

@@ -3,6 +3,7 @@ import type {
   AdminTrip,
   AdminWeek,
   GenerateResult,
+  PatternReport,
   Me,
   Settings,
   TripParams,
@@ -34,6 +35,9 @@ const MESSAGES: Record<string, string> = {
   DECOY_SOLO: 'בנסיעת פיתוי הנהג הראשי יוצא לבד',
   COMPANY_ONLY_OPTION: 'אחת האפשרויות שנבחרו מותרת רק ברכב חברה',
   PILOT_ALREADY_STARTED: 'הפיילוט כבר הוכרז',
+  CUSTODIAN_LOCKED: 'לא ניתן להחליף אחראי מוצר — אחד הקטעים כבר יצא לדרך',
+  CUSTODIAN_REQUIRED: 'אחראי המוצר חייב להיות משובץ בקטע',
+  VEHICLE_BLOCKED: 'הרכב סומן כלא זמין ביום זה',
   PIN_REQUIRED: 'יש להגדיר קוד לעובד חדש',
   NAME_TAKEN: 'השם כבר קיים',
   VALUE_TAKEN: 'הערך כבר קיים בקטגוריה',
@@ -91,7 +95,7 @@ export const api = {
   updateTrip: (
     token: string,
     tripId: string,
-    data: Partial<TripParams> & { assigned_workers?: string[]; excluded_from_analysis?: boolean },
+    data: Partial<TripParams> & { assigned_workers?: string[]; custodian_id?: string; excluded_from_analysis?: boolean },
   ) => call<{ trip: AdminTrip }>('admin_update_trip', { p_token: token, p_trip_id: tripId, p_data: data }),
   deleteTrip: (token: string, pin: string, tripId: string) =>
     call<void>('admin_delete_trip', { p_token: token, p_pin: pin, p_trip_id: tripId }),
@@ -125,6 +129,10 @@ export const api = {
     }),
   declarePilot: (token: string, pin: string, wipeTestData: boolean) =>
     call<{ pilot_start_date: string }>('admin_declare_pilot', { p_token: token, p_pin: pin, p_wipe_test_data: wipeTestData }),
+  setVehicleBlock: (token: string, vehicleType: string, date: string, blocked: boolean) =>
+    call<void>('admin_set_vehicle_block', { p_token: token, p_vehicle_type: vehicleType, p_date: date, p_blocked: blocked }),
+  patternReport: (token: string, days: number | null) =>
+    call<PatternReport>('admin_pattern_report', { p_token: token, p_days: days }),
   setAbsence: (token: string, employeeId: string, date: string, absent: boolean, note?: string) =>
     call<void>('admin_set_absence', {
       p_token: token,

@@ -2,20 +2,23 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { addDays, dayName, shortDate, timeOf, todayIso, weekMonday } from '../lib/dates';
-import { slotLabel, vehicleLabel } from '../lib/labels';
+import { legLabel, vehicleLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
-import type { Absence, AdminTrip, GenerateResult } from '../lib/types';
+import type { AdminTrip, AdminWeek, GenerateResult } from '../lib/types';
 import { Modal } from '../components/Modal';
 import { StatusChip } from '../components/StatusChip';
 import { TripParams } from '../components/TripParams';
 import { useStepUp } from '../components/StepUp';
 import { TripEditor } from '../components/TripEditor';
+import { ConstraintsGrid } from '../components/ConstraintsGrid';
+import { PatternReport } from '../components/PatternReport';
 
 export function Dashboard() {
   const { token } = useAuth();
   const [weekStart, setWeekStart] = useState(() => weekMonday(todayIso()));
   const { data, error, loading, reload } = useAsync(() => api.adminWeek(token, weekStart), [token, weekStart]);
   const [generateOpen, setGenerateOpen] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const [editing, setEditing] = useState<AdminTrip | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -51,6 +54,7 @@ export function Dashboard() {
       </header>
 
       <button className="btn primary block big" onClick={() => setGenerateOpen(true)}>בנה שבוע</button>
+      <button className="btn block" onClick={() => setReportOpen(true)}>ניתוח דפוסים</button>
 
       <div className="week-nav">
         <button className="icon-btn" onClick={() => setWeekStart(addDays(weekStart, -7))} aria-label="שבוע קודם">›</button>
@@ -78,7 +82,7 @@ export function Dashboard() {
       {data && days.map(([date, trips]) => (
         <div key={date} className={`day-group ${date === data.today ? 'today' : ''}`}>
           <h3>{dayName(date)} <span className="muted">{shortDate(date)}</span></h3>
-          <DayNotes date={date} trips={trips} absences={data.absences} leadIds={data.lead_ids} />
+          <DayNotes date={date} trips={trips} week={data} />
           {trips.length === 0 && <p className="muted small">אין נסיעות</p>}
           <div className="stack">
             {trips.map((t) => (
@@ -97,6 +101,7 @@ export function Dashboard() {
             if (res.week_start === weekStart) void reload();
           }} />
       )}
+      {reportOpen && <PatternReport onClose={() => setReportOpen(false)} />}
       {editing && (
         <TripEditor trip={editing} onClose={() => setEditing(null)}
           onSaved={() => { setEditing(null); void reload(); }} />
@@ -115,16 +120,18 @@ function AdminTripCard({ trip, open, onToggle, onEdit, onDelete }: {
       <button className="task-head" onClick={onToggle} aria-expanded={open}>
         <span className="trip-title">
           {decoy && <span className="chip decoy-tag">פיתוי</span>}
-          <span>{trip.asset_id} · {slotLabel(trip.departure_slot)} · {vehicleLabel(trip.vehicle_type)}</span>
+          <span>{trip.asset_id} · {legLabel(trip.leg)} · {vehicleLabel(trip.vehicle_type)}</span>
         </span>
         <StatusChip status={trip.status} />
       </button>
-      <p className="muted small workers">{trip.workers.map((w) => w.name).join(', ') || '—'}</p>
+      <p className="muted small workers">
+        {trip.workers.map((w) => (w.id === trip.custodian_id ? `${w.name} (אחראי)` : w.name)).join(', ') || '—'}
+      </p>
       {open && (
         <div className="task-body stack">
           <TripParams trip={trip} />
           {trip.decoy_trip_id && (
-            <p className="muted small">{decoy ? 'פיתוי לנסיעה אמיתית באותו יום' : 'יש פיתוי מקושר באותו יום'}</p>
+            <p className="muted small">{decoy ? 'פיתוי לקטע אמיתי באותה שעה' : 'יש פיתוי מקושר באותה שעה'}</p>
           )}
           {(trip.actual_start_at || trip.actual_done_at) && (
             <p className="muted small">
@@ -148,18 +155,19 @@ function AdminTripCard({ trip, open, onToggle, onEdit, onDelete }: {
   );
 }
 
-/** Absences for the day + warning when no lead driver is scheduled. */
-function DayNotes({ date, trips, absences, leadIds }: {
-  date: string; trips: AdminTrip[]; absences: Absence[]; leadIds: string[];
-}) {
-  const absent = absences.filter((a) => a.date === date);
-  const leadAbsent = absent.some((a) => leadIds.includes(a.employee_id));
-  const leadScheduled = trips.some((t) => t.assigned_workers.some((w) => leadIds.includes(w)));
+/** Constraints for the day + warning when a leg runs without the lead driver. */
+function DayNotes({ date, trips, week }: { date: string; trips: AdminTrip[]; week: AdminWeek }) {
+  const absent = week.absences.filter((a) => a.date === date);
+  const blocked = week.vehicle_blocks.filter((b) => b.date === date);
+  const leadAbsent = absent.some((a) => week.lead_ids.includes(a.employee_id));
+  const legsWithoutLead = trips.filter((t) => t.trip_type === 'real' && !t.decoy_trip_id
+    && !t.assigned_workers.some((w) => week.lead_ids.includes(w)));
   return (
     <>
-      {absent.length > 0 && <p className="muted small">נעדרים: {absent.map((a) => a.name).join(', ')}</p>}
-      {trips.length > 0 && leadIds.length > 0 && !leadScheduled && !leadAbsent && (
-        <p className="error small">⚠ נהג ראשי לא משובץ ביום זה</p>
+      {absent.length > 0 && <p className="muted small">לא זמינים: {absent.map((a) => a.name).join(', ')}</p>}
+      {blocked.length > 0 && <p className="muted small">רכב לא זמין: {blocked.map((b) => vehicleLabel(b.vehicle_type)).join(', ')}</p>}
+      {week.lead_ids.length > 0 && !leadAbsent && legsWithoutLead.length > 0 && (
+        <p className="error small">⚠ נהג ראשי לא חלק מ: {legsWithoutLead.map((t) => `${t.asset_id} ${legLabel(t.leg)}`).join(', ')}</p>
       )}
     </>
   );
@@ -197,9 +205,9 @@ function GenerateModal({ defaultDate, onClose, onDone }: {
     <Modal title="בניית שבוע" onClose={onClose}>
       {result ? (
         <div className="stack">
-          <p>נוצרו <b>{result.created}</b> נסיעות, מתוכן <b>{result.decoys}</b> עם פיתוי.</p>
+          <p>נוצרו <b>{result.created}</b> קטעים (יציאה/חזרה), ו-<b>{result.decoys}</b> פיתויים.</p>
           {result.fallbacks > 0 && (
-            <p className="muted small">{result.fallbacks} נסיעות נבחרו כ"הכי פחות חוזרות" (לא נמצא שילוב נקי ב-10 ניסיונות).</p>
+            <p className="muted small">{result.fallbacks} קטעים נבחרו כ"הכי פחות חוזרים" (לא נמצא שילוב נקי ב-10 ניסיונות).</p>
           )}
           {result.warnings.length > 0 && (
             <div className="alert stack">
@@ -222,6 +230,12 @@ function GenerateModal({ defaultDate, onClose, onDone }: {
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required />
           </label>
           {monday && <p className="muted small">ייבנו ימים ב'–ו': {shortDate(monday)} – {shortDate(addDays(monday, 4))}. ימים שכבר קיימים ידולגו.</p>}
+          {monday && (
+            <details className="constraints" open>
+              <summary>מגבלות לשבוע</summary>
+              <ConstraintsGrid monday={monday} />
+            </details>
+          )}
           <label className="field">
             <span>הקוד שלך (אימות נוסף)</span>
             <input type="password" value={pin} onChange={(e) => setPin(e.target.value)} autoComplete="current-password" required />

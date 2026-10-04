@@ -86,6 +86,7 @@ function TaskCard({ task, open, onToggle, onChanged }: {
           {!detail && !error && <p className="muted">טוען…</p>}
           {detail && (
             <>
+              {detail.is_custodian && <p className="note">אתה אחראי המוצר היום — יציאה וחזרה.</p>}
               <TripParams trip={detail} />
               {(detail.actual_start_at || detail.actual_done_at) && (
                 <p className="muted small">

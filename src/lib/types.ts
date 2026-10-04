@@ -1,6 +1,7 @@
 export type Role = 'admin' | 'operator';
 export type TripStatus = 'planned' | 'active' | 'done' | 'problem';
 export type Slot = 'morning' | 'noon';
+export type Leg = 'outbound' | 'return';
 export type Position = 'front' | 'back' | 'none';
 export type Category =
   | 'exit_point'
@@ -25,15 +26,17 @@ export interface WorkerTask {
   problem_note: string | null;
 }
 
+/** Outbound legs carry exit/outbound/entry; return legs carry factory_exit/return_route. */
 export interface TripParams {
+  leg: Leg;
   departure_slot: Slot;
   vehicle_type: string;
   worker_position: Position;
-  exit_point: string;
-  outbound_route: string;
-  factory_entry: string;
-  factory_exit: string;
-  return_route: string;
+  exit_point: string | null;
+  outbound_route: string | null;
+  factory_entry: string | null;
+  factory_exit: string | null;
+  return_route: string | null;
 }
 
 export interface WorkerTripDetail extends TripParams {
@@ -44,6 +47,7 @@ export interface WorkerTripDetail extends TripParams {
   problem_note: string | null;
   actual_start_at: string | null;
   actual_done_at: string | null;
+  is_custodian: boolean;
 }
 
 export interface WorkerWeekDay {
@@ -60,6 +64,8 @@ export interface AdminTrip extends TripParams {
   trip_type: 'real' | 'decoy';
   assigned_workers: string[];
   workers: { id: string; name: string }[];
+  custodian_id: string | null;
+  custodian_name: string | null;
   status: TripStatus;
   problem_note: string | null;
   actual_start_at: string | null;
@@ -81,7 +87,36 @@ export interface AdminWeek {
   trips: AdminTrip[];
   stats: { total: number; done: number; open: number; problem: number };
   absences: Absence[];
+  vehicle_blocks: { vehicle_type: string; date: string }[];
   lead_ids: string[];
+}
+
+export interface Count {
+  value: string;
+  count: number;
+}
+
+export interface LegReport {
+  n: number;
+  decoy_rate: number | null;
+  vehicle: Count[];
+  guess_blind: number | null;
+  guess_by_weekday: number | null;
+  by_weekday: { dow: number; n: number; top: string; top_share: number }[];
+  params: { a: Count[]; b: Count[]; c: Count[] };
+}
+
+export interface PatternReport {
+  from: string | null;
+  pilot_start_date: string | null;
+  days: number;
+  outbound: LegReport;
+  return: LegReport;
+  return_given_outbound: {
+    guess: number | null;
+    rows: { out: string; n: number; top: string; top_share: number }[];
+  };
+  custodians: { name: string; days: number }[];
 }
 
 export interface GenerateResult {

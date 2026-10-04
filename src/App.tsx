@@ -102,7 +102,7 @@ export function App() {
       <div className="app">
         <div className="topbar">
           <span className="who">{auth.me.name}</span>
-          <button className="link" onClick={auth.logout}>יציאה</button>
+          <button className="link" onClick={auth.logout}>התנתק</button>
         </div>
         <main>
           {active === 'today' && <Today />}

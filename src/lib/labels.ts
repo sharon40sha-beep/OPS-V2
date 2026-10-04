@@ -1,4 +1,4 @@
-import type { Category, Position, Slot, TripStatus } from './types';
+import type { Category, Leg, Position, Slot, TripStatus } from './types';
 
 const VEHICLES: Record<string, string> = {
   company: 'רכב חברה',
@@ -16,6 +16,13 @@ const SLOTS: Record<Slot, string> = {
   morning: 'בוקר',
   noon: 'צהריים',
 };
+
+const LEGS: Record<Leg, string> = {
+  outbound: 'יציאה',
+  return: 'חזרה',
+};
+
+export const legLabel = (l: string) => LEGS[l as Leg] ?? l;
 
 export const STATUS_LABEL: Record<TripStatus, string> = {
   planned: 'מתוכנן',
