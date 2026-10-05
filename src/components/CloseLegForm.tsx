@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { fromLocalInput, toLocalInput } from '../lib/dates';
 import { DELAY_REASON_LABEL } from '../lib/labels';
 import type { DelayReason } from '../lib/types';
 
@@ -11,10 +12,6 @@ export interface CloseDetails {
 
 const REASONS = Object.keys(DELAY_REASON_LABEL) as DelayReason[];
 
-export const toLocalInput = (d: Date) => {
-  const p = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
-};
 
 /**
  * Delay reason for a leg that ran over 90 minutes. "שכחתי לסגור" asks for the
@@ -60,7 +57,7 @@ export function CloseLegForm({ startAt, busy, onSubmit, onCancel, askActualTime 
         <button className="btn primary" disabled={busy || !valid}
           onClick={() => onSubmit({
             reason, note,
-            actualTime: reason === 'forgot' && askActualTime ? new Date(actual).toISOString() : null,
+            actualTime: reason === 'forgot' && askActualTime ? fromLocalInput(actual) : null,
           })}>
           {submitLabel}
         </button>

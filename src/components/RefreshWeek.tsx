@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { dayName, shortDate } from '../lib/dates';
+import { dayName, shortDate, TZ } from '../lib/dates';
 import { useAsync } from '../lib/useAsync';
 import type { RefreshAction, RefreshResult } from '../lib/types';
 import { Modal } from './Modal';
@@ -128,7 +128,7 @@ export function RefreshLog({ version }: { version: number }) {
         <tbody>
           {data.map((l) => (
             <tr key={l.id}>
-              <td>{new Date(l.created_at).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short' })}</td>
+              <td>{new Date(l.created_at).toLocaleString('he-IL', { dateStyle: 'short', timeStyle: 'short', timeZone: TZ })}</td>
               <td>{l.admin}</td>
               <td>
                 {l.range_from && l.range_to ? `${shortDate(l.range_from)}–${shortDate(l.range_to)}` : ''}
