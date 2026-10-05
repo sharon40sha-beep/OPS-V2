@@ -1,12 +1,13 @@
 import { useMemo, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { addDays, dayName, shortDate, timeOf } from '../lib/dates';
+import { addDays, dayName, shortDate } from '../lib/dates';
 import { legLabel, vehicleLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
 import type { TeamTrip } from '../lib/types';
 import { StatusChip } from '../components/StatusChip';
 import { TripParams } from '../components/TripParams';
+import { LegTimesLine } from '../components/LegTimesLine';
 
 /**
  * "השבוע": the whole team's legs with full details, read-only for everyone.
@@ -91,15 +92,10 @@ export function Week() {
                   <p className="muted small workers">
                     {t.workers.map((w) => (w.id === t.custodian_id ? `${w.name} (אחראי)` : w.name)).join(', ') || '—'}
                   </p>
+                  <LegTimesLine times={t} />
                   {open && (
                     <div className="task-body stack">
                       <TripParams trip={t} />
-                      {(t.actual_start_at || t.actual_done_at) && (
-                        <p className="muted small">
-                          {t.actual_start_at && `יציאה בפועל ${timeOf(t.actual_start_at)}`}
-                          {t.actual_done_at && ` · חזרה בפועל ${timeOf(t.actual_done_at)}`}
-                        </p>
-                      )}
                       {t.problem_note && (
                         <p className={t.status === 'problem' ? 'problem-note' : 'note'}>
                           {t.status === 'problem' ? 'בעיה' : 'הערה'}: {t.problem_note}

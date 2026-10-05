@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type {
+  DelayReason,
   AdminTrip,
   AdminWeek,
   GenerateResult,
@@ -43,6 +44,10 @@ const MESSAGES: Record<string, string> = {
   CUSTODIAN_LOCKED: 'לא ניתן להחליף אחראי מוצר — אחד הקטעים כבר יצא לדרך',
   CUSTODIAN_REQUIRED: 'אחראי המוצר חייב להיות משובץ בקטע',
   VEHICLE_BLOCKED: 'הרכב סומן כלא זמין ביום זה',
+  DELAY_REASON_REQUIRED: 'המשימה נמשכה מעל שעה וחצי — יש לבחור סיבה',
+  ACTUAL_TIME_REQUIRED: 'יש להזין את שעת החזרה בפועל',
+  BAD_TIME: 'השעה לא תקינה (לפני היציאה או בעתיד)',
+  NOT_STARTED: 'המשימה עוד לא התחילה — יש לסמן קודם התחלה',
   REFRESH_BLOCKED: 'הרענון בוטל ולא בוצע שום שינוי. לא נמצאה תוכנית חוקית',
   REFRESH_EMPTY: 'אין בטווח הזה משימות שאפשר לרענן',
   DECOY_UNSAFE_OPTION: 'בקטע עם פיתוי מותרות רק אפשרויות שמסומנות "מותר בפיתוי" (חניון מקורה)',
@@ -100,8 +105,22 @@ export const api = {
   workerToday: (token: string) => call<WorkerTask[]>('worker_today', { p_token: token }),
   workerTripDetail: (token: string, tripId: string) =>
     call<WorkerTripDetail>('worker_trip_detail', { p_token: token, p_trip_id: tripId }),
-  workerSetStatus: (token: string, tripId: string, action: 'start' | 'done' | 'problem' | 'note', note?: string) =>
-    call<void>('worker_set_status', { p_token: token, p_trip_id: tripId, p_action: action, p_note: note ?? null }),
+  workerSetStatus: (
+    token: string, tripId: string, action: 'start' | 'done' | 'problem' | 'note', note?: string,
+    reason?: DelayReason | null, actualTime?: string | null,
+  ) =>
+    call<void>('worker_set_status', {
+      p_token: token, p_trip_id: tripId, p_action: action, p_note: note ?? null,
+      p_reason: reason ?? null, p_actual_time: actualTime ?? null,
+    }),
+  adminSetStatus: (
+    token: string, tripId: string, action: 'start' | 'done', time: string | null,
+    reason?: DelayReason | null, note?: string, actualTime?: string | null,
+  ) =>
+    call<void>('admin_set_status', {
+      p_token: token, p_trip_id: tripId, p_action: action, p_time: time,
+      p_reason: reason ?? null, p_note: note || null, p_actual_time: actualTime ?? null,
+    }),
   workerWeek: (token: string) => call<WorkerWeekDay[]>('worker_week', { p_token: token }),
   workerMyWeek: (token: string, weekOffset: number) =>
     call<MyWeek>('worker_my_week', { p_token: token, p_week_offset: weekOffset }),

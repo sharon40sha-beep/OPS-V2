@@ -292,3 +292,11 @@ button.chip { border: 0; cursor: pointer; }
 .refresh-log summary { cursor: pointer; color: var(--muted); }
 .mini tr.muted td { color: var(--muted); }
 .trip.mine { border-color: var(--gold); }
+
+/* Start / finish times */
+.times-line { margin: 0; display: flex; flex-wrap: wrap; gap: 4px; align-items: center; font-weight: 600; }
+.delay-chip { background: #3d3214; color: #f3d98a; border-color: #6b5520; margin-inline-start: 6px; }
+.close-form { border: 1px dashed var(--border, #ccc); border-radius: 10px; padding: 10px; }
+.time-row { align-items: flex-end; flex-wrap: wrap; }
+.time-row .field { flex: 1 1 180px; }
+.admin-status { border-top: 1px solid var(--border, #ddd); padding-top: 8px; }
