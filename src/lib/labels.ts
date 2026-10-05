@@ -1,4 +1,4 @@
-import type { Category, Leg, Position, Slot, TripStatus } from './types';
+import type { Category, DelayReason, Leg, Position, Slot, TripStatus } from './types';
 
 const VEHICLES: Record<string, string> = {
   company: 'רכב חברה',
@@ -62,4 +62,20 @@ export function optionLabel(category: Category, value: string): string {
 export const PIN_POLICY_TEXT = 'לפחות 6 תווים, אות גדולה באנגלית, ספרה וסימן (למשל Abc12!)';
 export function pinPolicyOk(pin: string): boolean {
   return pin.length >= 6 && /[A-Z]/.test(pin) && /[0-9]/.test(pin) && /[^\p{L}\p{N}\s]/u.test(pin);
+}
+
+export const DELAY_REASON_LABEL: Record<DelayReason, string> = {
+  forgot: 'שכחתי לסגור',
+  road_delay: 'עיכוב בדרך',
+  factory_wait: 'המתנה במפעל',
+  other: 'אחר',
+};
+
+/** Legs longer than this need a delay reason when closed (mirrors app_private.close_check). */
+export const LONG_LEG_MINUTES = 90;
+
+export function durationLabel(start: string | null, end: string | null): string {
+  if (!start || !end) return '';
+  const minutes = Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000));
+  return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
 }

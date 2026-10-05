@@ -1,11 +1,13 @@
 import { useState } from 'react';
-import { api, errorText } from '../lib/api';
+import { ApiError, api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { dayName, shortDate, todayIso } from '../lib/dates';
 import { useAsync } from '../lib/useAsync';
 import type { WorkerTask, WorkerTripDetail } from '../lib/types';
 import { StatusChip } from '../components/StatusChip';
 import { TripDetail } from '../components/TripDetail';
+import { CloseLegForm, type CloseDetails } from '../components/CloseLegForm';
+import { LONG_LEG_MINUTES } from '../lib/labels';
 
 export function Today() {
   const { token } = useAuth();
@@ -39,7 +41,7 @@ function TaskCard({ task, open, onToggle, onChanged }: {
   const [detail, setDetail] = useState<WorkerTripDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [mode, setMode] = useState<'problem' | 'note' | null>(null);
+  const [mode, setMode] = useState<'problem' | 'note' | 'close' | null>(null);
   const [note, setNote] = useState('');
 
   const loadDetail = async () => {
@@ -56,15 +58,19 @@ function TaskCard({ task, open, onToggle, onChanged }: {
     onToggle();
   };
 
-  const act = async (action: 'start' | 'done' | 'problem' | 'note') => {
+  const act = async (action: 'start' | 'done' | 'problem' | 'note', close?: CloseDetails) => {
     setBusy(true);
     setError(null);
     try {
-      await api.workerSetStatus(token, task.id, action, action === 'problem' || action === 'note' ? note : undefined);
+      await api.workerSetStatus(token, task.id, action,
+        action === 'problem' || action === 'note' ? note : close?.note,
+        close?.reason, close?.actualTime);
       setMode(null);
       setNote('');
       await Promise.all([onChanged(), loadDetail()]);
     } catch (e) {
+      // Server clock says the leg is long even though the device did not: ask for the reason.
+      if (e instanceof ApiError && e.code === 'DELAY_REASON_REQUIRED' && !close) setMode('close');
       setError(errorText(e));
     } finally {
       setBusy(false);
@@ -72,6 +78,13 @@ function TaskCard({ task, open, onToggle, onChanged }: {
   };
 
   const status = detail?.status ?? task.status;
+
+  // Over 90 minutes since leaving → ask for the reason before closing (enforced again in the server).
+  const finish = () => {
+    const start = detail?.actual_start_at;
+    if (start && Date.now() - new Date(start).getTime() > LONG_LEG_MINUTES * 60000) setMode('close');
+    else void act('done');
+  };
 
   return (
     <article className={`card task ${open ? 'open' : ''}`}>
@@ -94,7 +107,7 @@ function TaskCard({ task, open, onToggle, onChanged }: {
                     <button className="btn primary big" disabled={busy} onClick={() => act('start')}>יצאתי</button>
                   )}
                   {(status === 'active' || status === 'problem') && (
-                    <button className="btn primary big" disabled={busy} onClick={() => act('done')}>חזרתי</button>
+                    <button className="btn primary big" disabled={busy} onClick={finish}>חזרתי</button>
                   )}
                   <button className="btn danger" disabled={busy} onClick={() => setMode('problem')}>יש בעיה</button>
                 </div>
@@ -104,7 +117,12 @@ function TaskCard({ task, open, onToggle, onChanged }: {
                 <button className="link align-start" onClick={() => setMode('note')}>+ הוסף הערה</button>
               )}
 
-              {mode && (
+              {mode === 'close' && detail.actual_start_at && (
+                <CloseLegForm startAt={detail.actual_start_at} busy={busy}
+                  onSubmit={(d) => act('done', d)} onCancel={() => setMode(null)} />
+              )}
+
+              {(mode === 'problem' || mode === 'note') && (
                 <div className="stack">
                   <label className="field">
                     <span>{mode === 'problem' ? 'מה הבעיה?' : 'הערה (הסטטוס לא ישתנה)'}</span>

@@ -2,6 +2,16 @@ export type Role = 'admin' | 'operator';
 export type TripStatus = 'planned' | 'active' | 'done' | 'problem';
 export type Slot = 'morning' | 'noon';
 export type Leg = 'outbound' | 'return';
+export type DelayReason = 'forgot' | 'road_delay' | 'factory_wait' | 'other';
+
+/** Actual start/finish of a leg, plus the reason when it ran over 90 minutes. */
+export interface LegTimes {
+  actual_start_at: string | null;
+  actual_done_at: string | null;
+  delay_reason: DelayReason | null;
+  delay_note: string | null;
+  times_by_admin: boolean;
+}
 export type Position = 'front' | 'back' | 'escort' | 'none';
 export type Category =
   | 'exit_point'
@@ -39,7 +49,7 @@ export interface TripParams {
   return_route: string | null;
 }
 
-export interface WorkerTripDetail extends TripParams {
+export interface WorkerTripDetail extends TripParams, LegTimes {
   id: string;
   label: string;
   asset_id: string;
@@ -59,7 +69,7 @@ export interface WorkerWeekDay {
   labels: string[];
 }
 
-export interface AdminTrip extends TripParams {
+export interface AdminTrip extends TripParams, LegTimes {
   id: string;
   label: string;
   asset_id: string;

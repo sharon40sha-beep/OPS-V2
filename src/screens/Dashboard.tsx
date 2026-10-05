@@ -1,13 +1,15 @@
 import { useMemo, useState, type FormEvent } from 'react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
-import { addDays, dayName, shortDate, timeOf, todayIso, weekMonday } from '../lib/dates';
+import { addDays, dayName, shortDate, todayIso, weekMonday } from '../lib/dates';
 import { legLabel, vehicleLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
 import type { AdminTrip, AdminWeek, GenerateResult } from '../lib/types';
 import { Modal } from '../components/Modal';
 import { StatusChip } from '../components/StatusChip';
 import { TripParams } from '../components/TripParams';
+import { LegTimesLine } from '../components/LegTimesLine';
+import { AdminStatusControls } from '../components/AdminStatusControls';
 import { useStepUp } from '../components/StepUp';
 import { TripEditor } from '../components/TripEditor';
 import { ConstraintsGrid } from '../components/ConstraintsGrid';
@@ -102,7 +104,7 @@ export function Dashboard() {
             {trips.map((t) => (
               <AdminTripCard key={t.id} trip={t} open={expandAll || openId === t.id}
                 onToggle={() => setOpenId(openId === t.id ? null : t.id)}
-                onEdit={() => setEditing(t)} onDelete={() => remove(t)} />
+                onEdit={() => setEditing(t)} onDelete={() => remove(t)} onChanged={() => void reload()} />
             ))}
           </div>
         </div>
@@ -129,8 +131,8 @@ export function Dashboard() {
   );
 }
 
-function AdminTripCard({ trip, open, onToggle, onEdit, onDelete }: {
-  trip: AdminTrip; open: boolean; onToggle: () => void; onEdit: () => void; onDelete: () => void;
+function AdminTripCard({ trip, open, onToggle, onEdit, onDelete, onChanged }: {
+  trip: AdminTrip; open: boolean; onToggle: () => void; onEdit: () => void; onDelete: () => void; onChanged: () => void;
 }) {
   const decoy = trip.trip_type === 'decoy';
   return (
@@ -145,17 +147,12 @@ function AdminTripCard({ trip, open, onToggle, onEdit, onDelete }: {
       <p className="muted small workers">
         {trip.workers.map((w) => (w.id === trip.custodian_id ? `${w.name} (אחראי)` : w.name)).join(', ') || '—'}
       </p>
+      <LegTimesLine times={trip} />
       {open && (
         <div className="task-body stack">
           <TripParams trip={trip} />
           {trip.decoy_trip_id && (
             <p className="muted small">{decoy ? 'פיתוי לקטע אמיתי באותה שעה' : 'יש פיתוי מקושר באותה שעה'}</p>
-          )}
-          {(trip.actual_start_at || trip.actual_done_at) && (
-            <p className="muted small">
-              {trip.actual_start_at && `יציאה ${timeOf(trip.actual_start_at)}`}
-              {trip.actual_done_at && ` · חזרה ${timeOf(trip.actual_done_at)}`}
-            </p>
           )}
           {trip.problem_note && (
             <p className={trip.status === 'problem' ? 'problem-note' : 'note'}>
@@ -163,6 +160,7 @@ function AdminTripCard({ trip, open, onToggle, onEdit, onDelete }: {
             </p>
           )}
           {trip.excluded_from_analysis && <p className="muted small">מוחרג מניתוח הדפוסים</p>}
+          <AdminStatusControls trip={trip} onChanged={onChanged} />
           <div className="row">
             <button className="btn" onClick={onEdit}>{trip.status !== 'done' ? 'ערוך' : 'הגדרות ניתוח'}</button>
             {trip.status === 'planned' && <button className="btn danger" onClick={onDelete}>מחק</button>}
