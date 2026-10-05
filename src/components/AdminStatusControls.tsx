@@ -3,7 +3,8 @@ import { ApiError, api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { LONG_LEG_MINUTES } from '../lib/labels';
 import type { AdminTrip } from '../lib/types';
-import { CloseLegForm, toLocalInput, type CloseDetails } from './CloseLegForm';
+import { fromLocalInput, toLocalInput } from '../lib/dates';
+import { CloseLegForm, type CloseDetails } from './CloseLegForm';
 
 /**
  * Admin: start / finish any leg, or correct its times. A finish more than 90
@@ -27,7 +28,7 @@ export function AdminStatusControls({ trip, onChanged }: { trip: AdminTrip; onCh
     setBusy(true);
     setError(null);
     try {
-      const time = new Date(local).toISOString();
+      const time = fromLocalInput(local);
       await api.adminSetStatus(token, trip.id, action, time, close?.reason, close?.note,
         close?.reason === 'forgot' ? time : null);
       setAskReason(false);
@@ -42,7 +43,7 @@ export function AdminStatusControls({ trip, onChanged }: { trip: AdminTrip; onCh
 
   const finish = () => {
     const long = trip.actual_start_at
-      && new Date(end).getTime() - new Date(trip.actual_start_at).getTime() > LONG_LEG_MINUTES * 60000;
+      && new Date(fromLocalInput(end)).getTime() - new Date(trip.actual_start_at).getTime() > LONG_LEG_MINUTES * 60000;
     if (long) setAskReason(true);
     else void send('done', end);
   };
