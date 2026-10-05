@@ -5,7 +5,7 @@ React + Vite + TypeScript, Supabase (Postgres) כ-backend.
 
 ## הקמה
 
-1. **DB** — הרץ ב-Supabase SQL Editor, לפי הסדר, את כל הקבצים ב-`supabase/migrations/` (0001 → … → 0012).
+1. **DB** — הרץ ב-Supabase SQL Editor, לפי הסדר, את כל הקבצים ב-`supabase/migrations/` (0001 → … → 0013).
 
 2. **Env** — `cp .env.example .env`
 3. `npm install && npm run dev`
@@ -40,6 +40,9 @@ select app_private.reset_data_if_pre_pilot();
   המנהל יכול לפתוח/לסגור כל משימה ולתקן שעות (`admin_set_status`, מסומן "עודכן ע״י מנהל").
 - **משימה מעל שעה וחצי** נסגרת רק עם סיבה: שכחתי לסגור / עיכוב בדרך / המתנה במפעל / אחר (+טקסט, חובה ב"אחר").
   "שכחתי לסגור" מחייב שעת חזרה בפועל, והיא נשמרת במקום שעת הלחיצה. נאכף בשרת (`app_private.close_check`).
+
+- **אזור זמן:** כל השעות והתאריכים לפי **שעון החוף המזרחי בארה"ב** (`America/New_York`, כולל שעון קיץ) —
+  בשרת (`app_private.today()`) ובתצוגה (`TZ` ב-`src/lib/dates.ts`), בלי קשר להגדרת המכשיר.
 
 - מדיניות קוד (נאכפת בשרת): לפחות 6 תווים, אות גדולה באנגלית, ספרה וסימן.
 
