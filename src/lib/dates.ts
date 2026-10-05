@@ -18,12 +18,12 @@ export function addDays(iso: string, days: number): string {
 }
 
 /**
- * All clock times are Israel time, whatever the device's time-zone setting is
+ * All clock times are US Eastern time (operations run there), whatever the device's time-zone setting is
  * (a phone or laptop set to another zone would otherwise shift every time).
  */
-export const TZ = 'Asia/Jerusalem';
+export const TZ = 'America/New_York';
 
-function israelParts(d: Date): Record<'year' | 'month' | 'day' | 'hour' | 'minute' | 'second', number> {
+function zoneParts(d: Date): Record<'year' | 'month' | 'day' | 'hour' | 'minute' | 'second', number> {
   const parts = new Intl.DateTimeFormat('en-US', {
     timeZone: TZ, hourCycle: 'h23',
     year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit',
@@ -34,26 +34,26 @@ function israelParts(d: Date): Record<'year' | 'month' | 'day' | 'hour' | 'minut
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
-/** Today's date in Israel (YYYY-MM-DD). */
+/** Today's date in US Eastern time (YYYY-MM-DD). */
 export const todayIso = () => {
-  const p = israelParts(new Date());
+  const p = zoneParts(new Date());
   return `${p.year}-${pad(p.month)}-${pad(p.day)}`;
 };
 
-/** Value for <input type="datetime-local">, in Israel time. */
+/** Value for <input type="datetime-local">, in US Eastern time. */
 export function toLocalInput(d: Date): string {
-  const p = israelParts(d);
+  const p = zoneParts(d);
   return `${p.year}-${pad(p.month)}-${pad(p.day)}T${pad(p.hour)}:${pad(p.minute)}`;
 }
 
-/** Israel wall time from <input type="datetime-local"> → ISO timestamp (handles DST). */
+/** US Eastern wall time from <input type="datetime-local"> → ISO timestamp (handles DST). */
 export function fromLocalInput(value: string): string {
   const [date, time] = value.split('T');
   const [y, mo, d] = date.split('-').map(Number);
   const [h, mi] = time.split(':').map(Number);
   const wall = Date.UTC(y, mo - 1, d, h, mi);
   const offsetAt = (ms: number) => {
-    const p = israelParts(new Date(ms));
+    const p = zoneParts(new Date(ms));
     return Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - ms;
   };
   let ms = wall - offsetAt(wall);
