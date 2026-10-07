@@ -2,7 +2,7 @@ import { useMemo, useState, type FormEvent } from 'react';
 import { api, errorText } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { addDays, dayName, shortDate, todayIso, weekMonday } from '../lib/dates';
-import { legLabel, vehicleLabel } from '../lib/labels';
+import { legLabel, tripHeadline, vehicleLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
 import type { AdminTrip, AdminWeek, GenerateResult } from '../lib/types';
 import { Modal } from '../components/Modal';
@@ -12,6 +12,7 @@ import { LegTimesLine } from '../components/LegTimesLine';
 import { AdminStatusControls } from '../components/AdminStatusControls';
 import { useStepUp } from '../components/StepUp';
 import { TripEditor } from '../components/TripEditor';
+import { ManualTripEditor } from '../components/ManualTripEditor';
 import { ConstraintsGrid } from '../components/ConstraintsGrid';
 import { PatternReport } from '../components/PatternReport';
 import { RefreshLog, RefreshWeekModal } from '../components/RefreshWeek';
@@ -25,6 +26,8 @@ export function Dashboard() {
   const [refreshOpen, setRefreshOpen] = useState(false);
   const [logVersion, setLogVersion] = useState(0);
   const [editing, setEditing] = useState<AdminTrip | null>(null);
+  // Manual task editor: { trip: null, date } = new task on that day.
+  const [manual, setManual] = useState<{ trip: AdminTrip | null; date: string } | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [expandAll, setExpandAll] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -97,14 +100,17 @@ export function Dashboard() {
 
       {data && days.map(([date, trips]) => (
         <div key={date} className={`day-group ${date === data.today ? 'today' : ''}`}>
-          <h3>{dayName(date)} <span className="muted">{shortDate(date)}</span></h3>
+          <div className="day-head">
+            <h3>{dayName(date)} <span className="muted">{shortDate(date)}</span></h3>
+            <button className="btn small" onClick={() => setManual({ trip: null, date })}>+ משימה מיוחדת</button>
+          </div>
           <DayNotes date={date} trips={trips} week={data} />
           {trips.length === 0 && <p className="muted small">אין נסיעות</p>}
           <div className="stack">
             {trips.map((t) => (
               <AdminTripCard key={t.id} trip={t} open={expandAll || openId === t.id}
                 onToggle={() => setOpenId(openId === t.id ? null : t.id)}
-                onEdit={() => setEditing(t)} onDelete={() => remove(t)} onChanged={() => void reload()} />
+                onEdit={() => (t.trip_type === 'manual' && t.status === 'planned' ? setManual({ trip: t, date: t.date }) : setEditing(t))} onDelete={() => remove(t)} onChanged={() => void reload()} />
             ))}
           </div>
         </div>
@@ -121,6 +127,10 @@ export function Dashboard() {
       {refreshOpen && (
         <RefreshWeekModal onClose={() => setRefreshOpen(false)}
           onDone={() => { setLogVersion((v) => v + 1); void reload(); }} />
+      )}
+      {manual && (
+        <ManualTripEditor trip={manual.trip} defaultDate={manual.date} onClose={() => setManual(null)}
+          onSaved={() => void reload()} />
       )}
       {editing && (
         <TripEditor trip={editing} onClose={() => setEditing(null)}
@@ -140,7 +150,8 @@ function AdminTripCard({ trip, open, onToggle, onEdit, onDelete, onChanged }: {
       <button className="task-head" onClick={onToggle} aria-expanded={open}>
         <span className="trip-title">
           {decoy && <span className="chip decoy-tag">פיתוי</span>}
-          <span>{trip.asset_id} · {legLabel(trip.leg)} · {vehicleLabel(trip.vehicle_type)}</span>
+          {trip.trip_type === 'manual' && <span className="chip manual-tag">מיוחדת</span>}
+          <span>{tripHeadline(trip)}</span>
         </span>
         <StatusChip status={trip.status} />
       </button>
@@ -162,7 +173,10 @@ function AdminTripCard({ trip, open, onToggle, onEdit, onDelete, onChanged }: {
           {trip.excluded_from_analysis && <p className="muted small">מוחרג מניתוח הדפוסים</p>}
           <AdminStatusControls trip={trip} onChanged={onChanged} />
           <div className="row">
-            <button className="btn" onClick={onEdit}>{trip.status !== 'done' ? 'ערוך' : 'הגדרות ניתוח'}</button>
+            {/* A manual task under way is changed only through start/finish above. */}
+            {!(trip.trip_type === 'manual' && (trip.status === 'active' || trip.status === 'problem')) && (
+              <button className="btn" onClick={onEdit}>{trip.status !== 'done' ? 'ערוך' : 'הגדרות ניתוח'}</button>
+            )}
             {trip.status === 'planned' && <button className="btn danger" onClick={onDelete}>מחק</button>}
           </div>
         </div>

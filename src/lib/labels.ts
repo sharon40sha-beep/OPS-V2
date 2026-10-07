@@ -16,6 +16,7 @@ const POSITIONS: Record<Position, string> = {
 const SLOTS: Record<Slot, string> = {
   morning: 'בוקר',
   noon: 'צהריים',
+  evening: 'אחה"צ/ערב',
 };
 
 const LEGS: Record<Leg, string> = {
@@ -40,6 +41,7 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   factory_exit: 'יציאה מהמפעל',
   return_route: 'ציר חזרה',
   worker_position: 'מיקום עובד',
+  external_site: 'מתקן חוץ',
 };
 
 /** Fixed codes the draw engine understands for worker_position. */
@@ -78,4 +80,15 @@ export function durationLabel(start: string | null, end: string | null): string 
   if (!start || !end) return '';
   const minutes = Math.max(0, Math.round((new Date(end).getTime() - new Date(start).getTime()) / 60000));
   return `${Math.floor(minutes / 60)}:${String(minutes % 60).padStart(2, '0')}`;
+}
+
+/** 'warehouse' / 'factory' are fixed codes; anything else is an external site name. */
+export const placeLabel = (p: string | null | undefined) =>
+  p === 'warehouse' ? 'מחסן' : p === 'factory' ? 'מפעל' : (p ?? '');
+
+/** Short card title: "A1 · יציאה · רכב חברה" or, for a manual task, "A1 · מחסן ← מתקן חוץ". */
+export function tripHeadline(t: { asset_id: string; trip_type?: string; origin?: string | null; destination?: string | null; leg: Leg; vehicle_type: string }): string {
+  return t.trip_type === 'manual'
+    ? `${t.asset_id} · ${placeLabel(t.origin)} ← ${placeLabel(t.destination)} · ${vehicleLabel(t.vehicle_type)}`
+    : `${t.asset_id} · ${legLabel(t.leg)} · ${vehicleLabel(t.vehicle_type)}`;
 }

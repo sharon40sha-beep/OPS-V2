@@ -1,5 +1,7 @@
 import { supabase } from './supabase';
 import type {
+  ManualTripInput,
+  SaveManualResult,
   DelayReason,
   AdminTrip,
   AdminWeek,
@@ -166,6 +168,13 @@ export const api = {
     }),
   unlockAccount: (token: string, pin: string, employeeId: string) =>
     call<void>('admin_unlock_account', { p_token: token, p_pin: pin, p_employee_id: employeeId }),
+  saveManualTrip: (token: string, tripId: string | null, t: ManualTripInput) =>
+    call<SaveManualResult>('admin_save_manual_trip', {
+      p_token: token, p_trip_id: tripId, p_asset: t.asset, p_date: t.date, p_slot: t.slot, p_time: t.time || null,
+      p_origin: t.origin, p_destination: t.destination, p_vehicle: t.vehicle, p_workers: t.workers,
+      p_custodian: t.custodian, p_position: t.position, p_exit_point: t.exitPoint, p_factory_entry: t.factoryEntry,
+      p_factory_exit: t.factoryExit, p_route_note: t.routeNote, p_note: t.note, p_excluded: t.excluded,
+    }),
   saveAsset: (token: string, id: string, homeWarehouse: string, isActive: boolean) =>
     call<void>('admin_save_asset', { p_token: token, p_id: id, p_home_warehouse: homeWarehouse, p_is_active: isActive }),
   saveConfig: (
