@@ -88,7 +88,7 @@ export const placeLabel = (p: string | null | undefined) =>
 
 /** Short card title: "A1 · יציאה · רכב חברה" or, for a manual task, "A1 · מחסן ← מתקן חוץ". */
 export function tripHeadline(t: { asset_id: string; trip_type?: string; origin?: string | null; destination?: string | null; leg: Leg; vehicle_type: string }): string {
-  return t.trip_type === 'manual'
+  return t.origin
     ? `${t.asset_id} · ${placeLabel(t.origin)} ← ${placeLabel(t.destination)} · ${vehicleLabel(t.vehicle_type)}`
     : `${t.asset_id} · ${legLabel(t.leg)} · ${vehicleLabel(t.vehicle_type)}`;
 }
