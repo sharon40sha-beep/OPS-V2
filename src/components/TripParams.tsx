@@ -2,7 +2,8 @@ import type { TripParams as Params } from '../lib/types';
 import { legLabel, placeLabel, positionLabel, slotLabel, vehicleLabel } from '../lib/labels';
 
 export function TripParams({ trip }: { trip: Params }) {
-  const manual = trip.trip_type === 'manual';
+  // Manual tasks and manual decoys carry origin → destination.
+  const manual = !!trip.origin;
   const when = `${slotLabel(trip.departure_slot)}${trip.planned_time ? ` ${trip.planned_time.slice(0, 5)}` : ''}`;
   const rows: [string, string | null][] = manual ? [
     ['משימה', `${placeLabel(trip.origin)} ← ${placeLabel(trip.destination)}`],

@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import type {
+  DecoyInput,
   ManualTripInput,
   SaveManualResult,
   DelayReason,
@@ -50,6 +51,7 @@ const MESSAGES: Record<string, string> = {
   ACTUAL_TIME_REQUIRED: 'יש להזין את שעת החזרה בפועל',
   BAD_TIME: 'השעה לא תקינה (לפני היציאה או בעתיד)',
   NOT_STARTED: 'המשימה עוד לא התחילה — יש לסמן קודם התחלה',
+  DECOY_EXISTS: 'למשימה כבר יש פיתוי שהמנוע הגריל — עורכים אותו מכרטיס הפיתוי',
   REFRESH_BLOCKED: 'הרענון בוטל ולא בוצע שום שינוי. לא נמצאה תוכנית חוקית',
   REFRESH_EMPTY: 'אין בטווח הזה משימות שאפשר לרענן',
   DECOY_UNSAFE_OPTION: 'בקטע עם פיתוי מותרות רק אפשרויות שמסומנות "מותר בפיתוי" (חניון מקורה)',
@@ -174,6 +176,12 @@ export const api = {
       p_origin: t.origin, p_destination: t.destination, p_vehicle: t.vehicle, p_workers: t.workers,
       p_custodian: t.custodian, p_position: t.position, p_exit_point: t.exitPoint, p_factory_entry: t.factoryEntry,
       p_factory_exit: t.factoryExit, p_route_note: t.routeNote, p_note: t.note, p_excluded: t.excluded,
+    }),
+  saveDecoy: (token: string, parentId: string, d: DecoyInput) =>
+    call<SaveManualResult>('admin_save_decoy', {
+      p_token: token, p_parent_id: parentId, p_time: d.time || null, p_origin: d.origin, p_destination: d.destination,
+      p_vehicle: d.vehicle, p_workers: d.workers, p_exit_point: d.exitPoint, p_factory_entry: d.factoryEntry,
+      p_factory_exit: d.factoryExit, p_route_note: d.routeNote, p_note: d.note,
     }),
   saveAsset: (token: string, id: string, homeWarehouse: string, isActive: boolean) =>
     call<void>('admin_save_asset', { p_token: token, p_id: id, p_home_warehouse: homeWarehouse, p_is_active: isActive }),

@@ -4,7 +4,7 @@ import { useAuth } from '../lib/auth';
 import { addDays, dayName, shortDate, todayIso, weekMonday } from '../lib/dates';
 import { legLabel, tripHeadline, vehicleLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
-import type { AdminTrip, AdminWeek, GenerateResult } from '../lib/types';
+import type { AdminTrip, AdminWeek, DecoyParent, GenerateResult } from '../lib/types';
 import { Modal } from '../components/Modal';
 import { StatusChip } from '../components/StatusChip';
 import { TripParams } from '../components/TripParams';
@@ -13,6 +13,7 @@ import { AdminStatusControls } from '../components/AdminStatusControls';
 import { useStepUp } from '../components/StepUp';
 import { TripEditor } from '../components/TripEditor';
 import { ManualTripEditor } from '../components/ManualTripEditor';
+import { DecoyEditor } from '../components/DecoyEditor';
 import { ConstraintsGrid } from '../components/ConstraintsGrid';
 import { PatternReport } from '../components/PatternReport';
 import { RefreshLog, RefreshWeekModal } from '../components/RefreshWeek';
@@ -28,6 +29,8 @@ export function Dashboard() {
   const [editing, setEditing] = useState<AdminTrip | null>(null);
   // Manual task editor: { trip: null, date } = new task on that day.
   const [manual, setManual] = useState<{ trip: AdminTrip | null; date: string } | null>(null);
+  // Decoy editor: attach to a task, or edit a manual decoy.
+  const [decoyFor, setDecoyFor] = useState<{ parent: DecoyParent; decoy: AdminTrip | null } | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [expandAll, setExpandAll] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -41,7 +44,7 @@ export function Dashboard() {
   }, [data, weekStart]);
 
   const remove = async (trip: AdminTrip) => {
-    const extra = trip.trip_type === 'real' && trip.decoy_trip_id ? ' (כולל הפיתוי המקושר)' : '';
+    const extra = trip.trip_type !== 'decoy' && trip.decoy_trip_id ? ' (כולל הפיתוי המקושר)' : '';
     const pin = await stepUp.ask(`מחיקת ${trip.label} ביום ${dayName(trip.date)}${extra}`);
     if (!pin) return;
     setActionError(null);
@@ -51,6 +54,14 @@ export function Dashboard() {
     } catch (e) {
       setActionError(errorText(e));
     }
+  };
+
+  const editTrip = (t: AdminTrip) => {
+    if (t.trip_type === 'manual' && t.status === 'planned') return setManual({ trip: t, date: t.date });
+    // A manual decoy is edited through its task.
+    const parent = t.trip_type === 'decoy' && t.origin ? data?.trips.find((x) => x.id === t.decoy_trip_id) : undefined;
+    if (parent && t.status === 'planned') return setDecoyFor({ parent, decoy: t });
+    setEditing(t);
   };
 
   const stats = data?.stats;
@@ -110,7 +121,8 @@ export function Dashboard() {
             {trips.map((t) => (
               <AdminTripCard key={t.id} trip={t} open={expandAll || openId === t.id}
                 onToggle={() => setOpenId(openId === t.id ? null : t.id)}
-                onEdit={() => (t.trip_type === 'manual' && t.status === 'planned' ? setManual({ trip: t, date: t.date }) : setEditing(t))} onDelete={() => remove(t)} onChanged={() => void reload()} />
+                onEdit={() => editTrip(t)}
+                onAddDecoy={() => setDecoyFor({ parent: t, decoy: null })} onDelete={() => remove(t)} onChanged={() => void reload()} />
             ))}
           </div>
         </div>
@@ -130,6 +142,11 @@ export function Dashboard() {
       )}
       {manual && (
         <ManualTripEditor trip={manual.trip} defaultDate={manual.date} onClose={() => setManual(null)}
+          onSaved={() => void reload()}
+          onAddDecoy={(parent) => { setManual(null); setDecoyFor({ parent, decoy: null }); }} />
+      )}
+      {decoyFor && (
+        <DecoyEditor parent={decoyFor.parent} decoy={decoyFor.decoy} onClose={() => setDecoyFor(null)}
           onSaved={() => void reload()} />
       )}
       {editing && (
@@ -141,8 +158,9 @@ export function Dashboard() {
   );
 }
 
-function AdminTripCard({ trip, open, onToggle, onEdit, onDelete, onChanged }: {
+function AdminTripCard({ trip, open, onToggle, onEdit, onDelete, onChanged, onAddDecoy }: {
   trip: AdminTrip; open: boolean; onToggle: () => void; onEdit: () => void; onDelete: () => void; onChanged: () => void;
+  onAddDecoy: () => void;
 }) {
   const decoy = trip.trip_type === 'decoy';
   return (
@@ -176,6 +194,9 @@ function AdminTripCard({ trip, open, onToggle, onEdit, onDelete, onChanged }: {
             {/* A manual task under way is changed only through start/finish above. */}
             {!(trip.trip_type === 'manual' && (trip.status === 'active' || trip.status === 'problem')) && (
               <button className="btn" onClick={onEdit}>{trip.status !== 'done' ? 'ערוך' : 'הגדרות ניתוח'}</button>
+            )}
+            {trip.status === 'planned' && trip.trip_type !== 'decoy' && !trip.decoy_trip_id && (
+              <button className="btn" onClick={onAddDecoy}>+ הוסף פיתוי</button>
             )}
             {trip.status === 'planned' && <button className="btn danger" onClick={onDelete}>מחק</button>}
           </div>

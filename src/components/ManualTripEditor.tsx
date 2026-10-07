@@ -4,17 +4,18 @@ import { useAuth } from '../lib/auth';
 import { dayName, parseDate, shortDate } from '../lib/dates';
 import { POSITION_CODES, placeLabel, positionLabel, slotLabel, vehicleLabel } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
-import type { AdminTrip, Category, Position, SaveManualResult, Slot } from '../lib/types';
+import type { AdminTrip, Category, DecoyParent, Position, SaveManualResult, Slot } from '../lib/types';
 import { Modal } from './Modal';
 
 const SLOTS: Slot[] = ['morning', 'noon', 'evening'];
 const NEW_PLACE = '__new__';
 
-const WARNING_TEXT: Record<SaveManualResult['warnings'][number]['code'], (d: string | null) => string> = {
+export const WARNING_TEXT: Record<SaveManualResult['warnings'][number]['code'], (d: string | null) => string> = {
   LEAD_NOT_ASSIGNED: () => 'הנהג הראשי לא משובץ במשימה',
   VEHICLE_BUSY: () => 'הרכב כבר משובץ למשימה אחרת באותו זמן',
   WORKER_BUSY: (d) => `${d} כבר משובץ למשימה אחרת באותו זמן`,
   BUDGET_EXHAUSTED: () => 'מכסת הרכב לחודש נוצלה',
+  DECOY_CAP: (d) => `כבר היו ${d} פיתויים ב-10 הקטעים האחרונים של הנכס (המכסה: 5)`,
 };
 
 /**
@@ -22,8 +23,10 @@ const WARNING_TEXT: Record<SaveManualResult['warnings'][number]['code'], (d: str
  * factory or an external site), crew and free-text route. Warehouse and
  * factory points are picked from the lists so the engine can count them.
  */
-export function ManualTripEditor({ trip, defaultDate, onClose, onSaved }: {
+export function ManualTripEditor({ trip, defaultDate, onClose, onSaved, onAddDecoy }: {
   trip: AdminTrip | null; defaultDate: string; onClose: () => void; onSaved: () => void;
+  /** Called when the admin chooses to attach a decoy to the task just created. */
+  onAddDecoy: (parent: DecoyParent) => void;
 }) {
   const { token } = useAuth();
   const { data: settings, error: loadError } = useAsync(() => api.settings(token), [token]);
@@ -47,6 +50,8 @@ export function ManualTripEditor({ trip, defaultDate, onClose, onSaved }: {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [warnings, setWarnings] = useState<string[] | null>(null);
+  // Set after creating a task: asks whether to attach a decoy.
+  const [created, setCreated] = useState<DecoyParent | null>(null);
 
   const isCompany = vehicle === 'company';
   const options = (cat: Category) =>
@@ -81,7 +86,16 @@ export function ManualTripEditor({ trip, defaultDate, onClose, onSaved }: {
         routeNote, note, excluded,
       });
       onSaved();
-      if (res.warnings.length) setWarnings(res.warnings.map((w) => WARNING_TEXT[w.code](w.detail)));
+      const list = res.warnings.map((w) => WARNING_TEXT[w.code](w.detail));
+      if (!trip) {
+        setWarnings(list);
+        setCreated({
+          id: res.id, asset_id: asset, date, leg: origin === 'factory' || (origin !== 'warehouse' && destination === 'warehouse') ? 'return' : 'outbound',
+          departure_slot: slot, planned_time: time || null, trip_type: 'manual', origin, destination,
+          exit_point: needExit ? exitPoint : null, outbound_route: null, factory_entry: needEntry ? factoryEntry : null,
+          factory_exit: needFactoryExit ? factoryExit : null, return_route: null,
+        });
+      } else if (list.length) setWarnings(list);
       else onClose();
     } catch (err) {
       setError(errorText(err));
@@ -106,9 +120,24 @@ export function ManualTripEditor({ trip, defaultDate, onClose, onSaved }: {
     return (
       <Modal title="המשימה נשמרה" onClose={onClose}>
         <div className="stack">
-          <p className="small">שים לב:</p>
-          <ul className="warnings">{warnings.map((w) => <li key={w}>⚠ {w}</li>)}</ul>
-          <button className="btn primary block" onClick={onClose}>הבנתי</button>
+          {warnings.length > 0 && (
+            <>
+              <p className="small">שים לב:</p>
+              <ul className="warnings">{warnings.map((w) => <li key={w}>⚠ {w}</li>)}</ul>
+            </>
+          )}
+          {created ? (
+            <>
+              <p><b>לשייך משימת פיתוי?</b></p>
+              <p className="hint">הפיתוי יוצא באותו זמן ונפתח ונסגר אוטומטית יחד עם המשימה.</p>
+              <div className="row">
+                <button className="btn primary grow" onClick={() => onAddDecoy(created)}>כן, הוסף פיתוי</button>
+                <button className="btn grow" onClick={onClose}>לא</button>
+              </div>
+            </>
+          ) : (
+            <button className="btn primary block" onClick={onClose}>הבנתי</button>
+          )}
         </div>
       </Modal>
     );
@@ -230,7 +259,7 @@ export function ManualTripEditor({ trip, defaultDate, onClose, onSaved }: {
   );
 }
 
-function PlacePicker({ label, value, sites, onChange }: {
+export function PlacePicker({ label, value, sites, onChange }: {
   label: string; value: string; sites: string[]; onChange: (v: string) => void;
 }) {
   const known = value === '' || value === 'warehouse' || value === 'factory' || sites.includes(value);
@@ -259,7 +288,7 @@ function PlacePicker({ label, value, sites, onChange }: {
   );
 }
 
-function PointSelect({ label, value, values, onChange }: {
+export function PointSelect({ label, value, values, onChange }: {
   label: string; value: string; values: string[]; onChange: (v: string) => void;
 }) {
   return (

@@ -265,5 +265,36 @@ export interface ManualTripInput {
 export interface SaveManualResult {
   ok: boolean;
   id: string;
-  warnings: { code: 'LEAD_NOT_ASSIGNED' | 'VEHICLE_BUSY' | 'WORKER_BUSY' | 'BUDGET_EXHAUSTED'; detail: string | null }[];
+  warnings: { code: 'LEAD_NOT_ASSIGNED' | 'VEHICLE_BUSY' | 'WORKER_BUSY' | 'BUDGET_EXHAUSTED' | 'DECOY_CAP'; detail: string | null }[];
+}
+
+export interface DecoyInput {
+  time: string | null;
+  origin: string;
+  destination: string;
+  vehicle: string;
+  workers: string[];
+  exitPoint: string | null;
+  factoryEntry: string | null;
+  factoryExit: string | null;
+  routeNote: string;
+  note: string;
+}
+
+/** The task a decoy is attached to (enough to prefill the decoy form). */
+export interface DecoyParent {
+  id: string;
+  asset_id: string;
+  date: string;
+  leg: Leg;
+  departure_slot: Slot;
+  planned_time?: string | null;
+  trip_type?: TripType;
+  origin?: string | null;
+  destination?: string | null;
+  exit_point: string | null;
+  outbound_route: string | null;
+  factory_entry: string | null;
+  factory_exit: string | null;
+  return_route: string | null;
 }
