@@ -1,6 +1,6 @@
 export type Role = 'admin' | 'operator';
 export type TripStatus = 'planned' | 'active' | 'done' | 'problem';
-export type Slot = 'morning' | 'noon';
+export type Slot = 'morning' | 'noon' | 'evening';
 export type Leg = 'outbound' | 'return';
 export type DelayReason = 'forgot' | 'road_delay' | 'factory_wait' | 'other';
 
@@ -20,7 +20,8 @@ export type Category =
   | 'factory_entry'
   | 'factory_exit'
   | 'return_route'
-  | 'worker_position';
+  | 'worker_position'
+  | 'external_site';
 
 export interface Me {
   id: string;
@@ -47,7 +48,16 @@ export interface TripParams {
   factory_entry: string | null;
   factory_exit: string | null;
   return_route: string | null;
+  /** Manual tasks only */
+  trip_type?: TripType;
+  origin?: string | null;
+  destination?: string | null;
+  planned_time?: string | null;
+  route_note?: string | null;
+  manual_note?: string | null;
 }
+
+export type TripType = 'real' | 'decoy' | 'manual';
 
 export interface WorkerTripDetail extends TripParams, LegTimes {
   id: string;
@@ -74,7 +84,7 @@ export interface AdminTrip extends TripParams, LegTimes {
   label: string;
   asset_id: string;
   date: string;
-  trip_type: 'real' | 'decoy';
+  trip_type: TripType;
   assigned_workers: string[];
   workers: { id: string; name: string }[];
   custodian_id: string | null;
@@ -231,4 +241,29 @@ export interface RefreshLogEntry {
   replaced: number;
   created: number;
   reason: string | null;
+}
+
+export interface ManualTripInput {
+  asset: string;
+  date: string;
+  slot: Slot;
+  time: string | null;
+  origin: string;
+  destination: string;
+  vehicle: string;
+  workers: string[];
+  custodian: string | null;
+  position: Position;
+  exitPoint: string | null;
+  factoryEntry: string | null;
+  factoryExit: string | null;
+  routeNote: string;
+  note: string;
+  excluded: boolean;
+}
+
+export interface SaveManualResult {
+  ok: boolean;
+  id: string;
+  warnings: { code: 'LEAD_NOT_ASSIGNED' | 'VEHICLE_BUSY' | 'WORKER_BUSY' | 'BUDGET_EXHAUSTED'; detail: string | null }[];
 }

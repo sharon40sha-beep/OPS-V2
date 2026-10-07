@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { addDays, dayName, shortDate } from '../lib/dates';
-import { legLabel, vehicleLabel } from '../lib/labels';
+import { tripHeadline } from '../lib/labels';
 import { useAsync } from '../lib/useAsync';
 import type { TeamTrip } from '../lib/types';
 import { StatusChip } from '../components/StatusChip';
@@ -82,7 +82,8 @@ export function Week() {
                   <button className="task-head" onClick={() => toggle(t)} aria-expanded={open}>
                     <span className="trip-title">
                       {decoy && <span className="chip decoy-tag">פיתוי</span>}
-                      <span>{t.asset_id} · {legLabel(t.leg)} · {vehicleLabel(t.vehicle_type)}</span>
+                    {t.trip_type === 'manual' && <span className="chip manual-tag">מיוחדת</span>}
+                      <span>{tripHeadline(t)}</span>
                     </span>
                     <span className="team-row-side">
                       {t.is_mine && <span className="chip gold small">שלי</span>}

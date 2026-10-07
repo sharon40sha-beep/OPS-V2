@@ -300,3 +300,9 @@ button.chip { border: 0; cursor: pointer; }
 .time-row { align-items: flex-end; flex-wrap: wrap; }
 .time-row .field { flex: 1 1 180px; }
 .admin-status { border-top: 1px solid var(--border, #ddd); padding-top: 8px; }
+
+/* Manual tasks */
+.manual-tag { background: #1d3b4a; color: #9fd6ef; border-color: #2d5d73; }
+.day-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.day-head h3 { margin: 0; }
+.warnings { margin: 0; padding-inline-start: 18px; display: grid; gap: 4px; }

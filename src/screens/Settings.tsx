@@ -322,8 +322,8 @@ function Assets({ data, reload }: SectionProps) {
       <form className="card stack" onSubmit={add}>
         <h3>נכס חדש</h3>
         <div className="row">
-          <input placeholder="מזהה (A2)" value={id} onChange={(e) => setId(e.target.value)}
-            pattern="[A-Za-z0-9_\-]{1,20}" required className="narrow" dir="ltr" />
+          <input placeholder="שם הנכס (למשל A2 או כספת צפון)" value={id} onChange={(e) => setId(e.target.value)}
+            maxLength={40} required className="grow" />
           <input placeholder="מחסן בית" value={warehouse} onChange={(e) => setWarehouse(e.target.value)} required className="grow" />
         </div>
         <button className="btn primary" disabled={busy}>הוסף</button>
@@ -357,6 +357,8 @@ function ConfigCategory({ category, data, reload }: SectionProps & { category: C
   const rows = data.config.filter((c) => c.category === category);
   // Codes with fixed meaning in the algorithm must not be renamed.
   const fixedCodes = category === 'vehicle_type' || category === 'worker_position';
+  // External sites are just names for manual tasks (no draw flags).
+  const isSite = category === 'external_site';
   const missingPositions = POSITION_CODES.filter((p) => !rows.some((r) => r.value === p));
 
   const add = async (e: FormEvent) => {
@@ -372,6 +374,9 @@ function ConfigCategory({ category, data, reload }: SectionProps & { category: C
             ? 'הקודים company / rental / delivery משמשים את מנוע ההגרלה. ניתן להשבית; קוד חדש יוגרל כרכב רגיל.'
             : 'מיקום העובד נבחר מרשימה קבועה (מקדימה / מאחור / ברכב אחר-מלווה). ניתן להשבית ערך שלא רוצים שיוגרל.'}
         </p>
+      )}
+      {isSite && (
+        <p className="hint">מתקני חוץ למשימות מיוחדות. מתקן חדש נוסף לכאן גם אוטומטית כשמקלידים אותו במשימה.</p>
       )}
       {error && <p className="error">{error}</p>}
       {rows.map((c) => {
@@ -389,14 +394,14 @@ function ConfigCategory({ category, data, reload }: SectionProps & { category: C
                 <button className="btn small primary" disabled={busy}
                   onClick={() => run(() => api.saveConfig(token, c.id, category, value, c.is_active, c.company_only, c.decoy_ok))}>שמור</button>
               )}
-              {!fixedCodes && (
+              {!fixedCodes && !isSite && (
                 <button className={`btn small ${c.company_only ? 'primary' : ''}`} disabled={busy}
                   title="אפשרות זו תוגרל/תותר רק ברכב חברה"
                   onClick={() => run(() => api.saveConfig(token, c.id, category, c.value, c.is_active, !c.company_only, c.decoy_ok))}>
                   {c.company_only ? 'רק רכב חברה ✓' : 'רק רכב חברה'}
                 </button>
               )}
-              {!fixedCodes && (
+              {!fixedCodes && !isSite && (
                 <button className={`btn small ${c.decoy_ok ? 'primary' : ''}`} disabled={busy}
                   title="מותר בקטע שיש בו פיתוי (לשני הרכבים)"
                   onClick={() => run(() => api.saveConfig(token, c.id, category, c.value, c.is_active, c.company_only, !c.decoy_ok))}>

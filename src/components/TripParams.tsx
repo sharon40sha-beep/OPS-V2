@@ -1,8 +1,20 @@
 import type { TripParams as Params } from '../lib/types';
-import { legLabel, positionLabel, slotLabel, vehicleLabel } from '../lib/labels';
+import { legLabel, placeLabel, positionLabel, slotLabel, vehicleLabel } from '../lib/labels';
 
 export function TripParams({ trip }: { trip: Params }) {
-  const rows: [string, string | null][] = [
+  const manual = trip.trip_type === 'manual';
+  const when = `${slotLabel(trip.departure_slot)}${trip.planned_time ? ` ${trip.planned_time.slice(0, 5)}` : ''}`;
+  const rows: [string, string | null][] = manual ? [
+    ['משימה', `${placeLabel(trip.origin)} ← ${placeLabel(trip.destination)}`],
+    ['שעה', when],
+    ['סוג רכב', vehicleLabel(trip.vehicle_type)],
+    ['מיקום עובד', trip.vehicle_type === 'company' && trip.worker_position !== 'none' ? positionLabel(trip.worker_position) : null],
+    ['יציאה מהמחסן', trip.exit_point],
+    ['כניסה למפעל', trip.factory_entry],
+    ['יציאה מהמפעל', trip.factory_exit],
+    ['מסלול', trip.route_note ?? null],
+    ['הנחיות', trip.manual_note ?? null],
+  ] : [
     ['קטע', `${legLabel(trip.leg)} (${slotLabel(trip.departure_slot)})`],
     ['סוג רכב', vehicleLabel(trip.vehicle_type)],
     ['מיקום עובד', trip.vehicle_type === 'company' && trip.worker_position !== 'none' ? positionLabel(trip.worker_position) : null],
